@@ -1,7 +1,4 @@
-use crate::core::{
-    meta::{MetaNode, ParserType},
-    traits::IParser,
-};
+use crate::core::{meta::*, traits::IParser};
 use anyhow::Result;
 use std::{fmt, path::Path};
 
