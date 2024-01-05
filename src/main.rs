@@ -1,5 +1,9 @@
 mod core;
 mod parsers;
 fn main() {
-    println!("Hello, world!");
+    register();
+}
+
+fn register() {
+    parsers::register();
 }
