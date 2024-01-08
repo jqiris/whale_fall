@@ -1,4 +1,6 @@
 pub mod meta;
+#[cfg(test)]
+mod tests;
 pub mod traits;
 use anyhow::Result;
 use lazy_static::lazy_static;

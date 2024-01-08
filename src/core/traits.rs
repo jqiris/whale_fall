@@ -5,7 +5,7 @@ use std::path::Path;
 
 pub trait IParser: fmt::Display {
     fn parser_type(&self) -> ParserType;
-    fn parse(&self, root: &Path) -> Result<MetaNode>;
+    fn parse(&self, path: &Path) -> Result<MetaNode>;
 }
 
 pub trait IProcesser: fmt::Display {

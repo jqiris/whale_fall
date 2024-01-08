@@ -1,74 +1,23 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use gosyn::*;
-pub struct XArg {
-    pub name: String,
-    pub xtype: String,
-}
+use regex::Regex;
 
-pub struct XMethod {
-    pub impl_name: String,
-    pub name: String,
-    pub params: Vec<XArg>,
-    pub results: Vec<XArg>,
-    pub comment: String,
-    pub sort: i32,
-    pub http_rule: String,
-    pub http_method: String,
-}
-
-pub struct XField {
-    pub name: String,
-    pub xtype: String,
-    pub stype: i32,
-    pub idx: i32,
-    pub tag: String,
-    pub comment: String,
-}
-
-pub struct XST {
-    pub gi_name: String,
-    pub gi: bool,
-    pub impl_inf: String,
-    pub imports: Vec<String>,
-    pub file: String,
-    pub name: String,
-    pub short_name: String,
-    pub mpoint: bool,
-    pub cst: Vec<String>,
-    pub methods: Vec<XMethod>,
-    pub fields: HashMap<String, XField>,
-}
-pub struct INF {
-    pub name: String,
-    pub file: String,
-    pub imports: Vec<String>,
-    pub methods: HashMap<String, XMethod>,
-}
+use crate::common::{file::path_str, go::MetaGo, str::find_string_sub_match};
 
 pub enum ParserType {
     ParserTypeGM,
-}
-pub struct MetaGo {
-    pub ast_file: Option<ast::File>,
-    pub inf_list: HashMap<String, INF>,      //interface list
-    pub st_list: HashMap<String, XST>,       //struct list
-    pub ot_list: HashMap<String, XST>,       //other type list
-    pub const_list: HashMap<String, String>, //const list
-    pub bind_func_list: HashMap<String, HashMap<String, XMethod>>, //bind func
-    pub func_list: HashMap<String, XMethod>, //func
-    pub new_func_list: HashMap<String, XMethod>, //new func
 }
 pub enum MetaData {
     Doc(String),
     Go(MetaGo),
 }
 pub struct MetaNode {
-    pub name: String,
-    pub path: String,
-    pub is_dir: bool,
-    pub child: Vec<MetaNode>,
-    pub data: MetaData,
+    pub name: String,           //名字
+    pub path: String,           //路径
+    pub is_dir: bool,           //是否是目录
+    pub child: Vec<MetaNode>,   //子节点
+    pub data: Option<MetaData>, //数据
 }
 
 pub enum ProcessType {
