@@ -61,6 +61,7 @@ pub struct XST {
     pub methods: HashMap<String, XMethod>,
     pub fields: HashMap<String, XField>,
 }
+#[derive(Default, Clone)]
 pub struct INF {
     pub name: String,
     pub file: String,
@@ -78,8 +79,57 @@ pub struct MetaGo {
     pub func_list: HashMap<String, XMethod>, //func
     pub new_func_list: HashMap<String, XMethod>, //new func
 }
+impl Default for MetaGo {
+    fn default() -> Self {
+        Self {
+            ast_file: None,
+            inf_list: Default::default(),
+            st_list: Default::default(),
+            ot_list: Default::default(),
+            const_list: Default::default(),
+            bind_func_maps: Default::default(),
+            func_list: Default::default(),
+            new_func_list: Default::default(),
+        }
+    }
+}
 
 impl MetaGo {
+    pub fn merge(&mut self, go: &MetaGo) {
+        if let Some(_) = go.ast_file {
+            //仅支持文件合并
+            for (name, inf) in go.inf_list.iter() {
+                self.inf_list.entry(name.clone()).or_insert(inf.clone());
+            }
+            for (name, st) in go.st_list.iter() {
+                self.st_list.entry(name.clone()).or_insert(st.clone());
+            }
+            for (name, ot) in go.ot_list.iter() {
+                self.ot_list.entry(name.clone()).or_insert(ot.clone());
+            }
+            for (name, cst) in go.const_list.iter() {
+                self.const_list.entry(name.clone()).or_insert(cst.clone());
+            }
+            for (name, func) in go.func_list.iter() {
+                self.func_list.entry(name.clone()).or_insert(func.clone());
+            }
+            for (name, func) in go.new_func_list.iter() {
+                self.new_func_list
+                    .entry(name.clone())
+                    .or_insert(func.clone());
+            }
+            for (name, func_maps) in go.bind_func_maps.iter() {
+                if self.bind_func_maps.contains_key(name) {
+                    let self_func_maps = self.bind_func_maps.get_mut(name).unwrap();
+                    for (mname, mth) in func_maps {
+                        self_func_maps.entry(mname.clone()).or_insert(mth.clone());
+                    }
+                } else {
+                    self.bind_func_maps.insert(name.clone(), func_maps.clone());
+                }
+            }
+        }
+    }
     pub fn load_binds(&mut self) {
         for (sname, sts) in self.st_list.iter_mut() {
             let mut smths: HashMap<String, XMethod> = HashMap::new();

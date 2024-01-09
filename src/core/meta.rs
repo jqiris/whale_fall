@@ -16,7 +16,7 @@ pub struct MetaNode {
     pub name: String,           //名字
     pub path: String,           //路径
     pub is_dir: bool,           //是否是目录
-    pub child: Vec<MetaNode>,   //子节点
+    pub childs: Vec<MetaNode>,  //子节点
     pub data: Option<MetaData>, //数据
 }
 
