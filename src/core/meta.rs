@@ -1,9 +1,5 @@
-use std::{collections::HashMap, path::Path};
-
-use gosyn::*;
-use regex::Regex;
-
-use crate::common::{file::path_str, go::MetaGo, str::find_string_sub_match};
+use crate::common::go::MetaGo;
+use std::collections::HashMap;
 
 pub enum ParserType {
     ParserTypeGM,
@@ -32,6 +28,16 @@ impl MetaNode {
             }
         }
         None
+    }
+    pub fn find_list_by_name(&self, name: &str) -> Vec<MetaNode> {
+        let mut list = Vec::new();
+        if self.name == name {
+            list.push(self.clone());
+        }
+        for child in self.childs.iter() {
+            list.append(&mut child.find_list_by_name(name));
+        }
+        list
     }
 }
 
