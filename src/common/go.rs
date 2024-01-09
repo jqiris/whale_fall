@@ -249,7 +249,7 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
 
 impl From<ast::File> for MetaGo {
     fn from(ast_file: ast::File) -> Self {
-        let mut metaGo = MetaGo {
+        let mut meta_go = MetaGo {
             ast_file: Some(ast_file.clone()),
             inf_list: HashMap::new(),
             st_list: HashMap::new(),
@@ -285,10 +285,10 @@ impl From<ast::File> for MetaGo {
                             results,
                             ..Default::default()
                         };
-                        if !metaGo.bind_func_list.contains_key(&bind_name) {
-                            metaGo.bind_func_list = HashMap::new();
+                        if !meta_go.bind_func_list.contains_key(&bind_name) {
+                            meta_go.bind_func_list = HashMap::new();
                         }
-                        metaGo
+                        meta_go
                             .bind_func_list
                             .get_mut(&bind_name)
                             .unwrap()
@@ -338,10 +338,10 @@ impl From<ast::File> for MetaGo {
                                     fields,
                                 };
                                 if !used {
-                                    metaGo.ot_list.insert(name, xst);
+                                    meta_go.ot_list.insert(name, xst);
                                     continue;
                                 }
-                                metaGo.st_list.insert(name, xst);
+                                meta_go.st_list.insert(name, xst);
                             }
                             ast::Expression::TypeInterface(xt) => {
                                 if !used {
@@ -353,7 +353,7 @@ impl From<ast::File> for MetaGo {
                                     imports: imports.clone(),
                                     methods: go_interface_func(xt),
                                 };
-                                metaGo.inf_list.insert(name, inf);
+                                meta_go.inf_list.insert(name, inf);
                             }
                             _ => {}
                         }
@@ -363,6 +363,6 @@ impl From<ast::File> for MetaGo {
                 ast::Declaration::Variable(_) => {}
             }
         }
-        metaGo
+        meta_go
     }
 }
