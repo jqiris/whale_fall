@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap};
 
 use gosyn::ast::{self, *};
 use regex::Regex;
@@ -7,7 +7,7 @@ use crate::core::meta::*;
 
 use super::{
     file::path_str,
-    str::{find_string_sub_match, is_first_uppercase},
+    str::{find_string_sub_match, is_first_lowwercase, is_first_uppercase},
 };
 pub enum XType {
     XTypeNone,
@@ -31,7 +31,7 @@ impl Default for XArg {
         }
     }
 }
-
+#[derive(Default)]
 pub struct XMethod {
     pub impl_name: String,
     pub name: String,
@@ -46,7 +46,7 @@ pub struct XMethod {
 pub struct XField {
     pub name: String,
     pub xtype: String,
-    pub stype: i32,
+    pub stype: XType,
     pub idx: i32,
     pub tag: String,
     pub comment: String,
@@ -83,27 +83,27 @@ pub struct MetaGo {
     pub new_func_list: HashMap<String, XMethod>, //new func
 }
 
-pub fn go_map_type_str(arg: MapType) -> String {
-    let (mut key, mut value) = ("".to_string(), "".to_string());
-    match *arg.key {
+pub fn go_map_type_str(arg: &MapType) -> String {
+    let mut key = "".to_string();
+    match arg.key.borrow() {
         Expression::Ident(x) => {
-            key = x.name;
+            key = x.name.clone();
         }
         _ => {}
     }
-    let (value, _) = go_type_str(*arg.val);
+    let (value, _) = go_type_str(&arg.val);
     format!("map[{}]{}", key, value)
 }
 
-pub fn go_slice_type_str(arg: ArrayType) -> String {
-    let (value, _) = go_type_str(*arg.typ);
+pub fn go_slice_type_str(arg: &ArrayType) -> String {
+    let (value, _) = go_type_str(&arg.typ);
     format!("[]{}", value)
 }
 
-pub fn go_type_str(arg: Expression) -> (String, XType) {
+pub fn go_type_str(arg: &Expression) -> (String, XType) {
     match arg {
         Expression::Selector(x) => (format!("{:?}.{}", x.x, x.sel.name), XType::XTypeStruct),
-        Expression::Star(x) => match *x.right {
+        Expression::Star(x) => match x.right.borrow() {
             Expression::Selector(_type) => (
                 format!("{:?}.{}", _type.x, _type.sel.name),
                 XType::XTypeStruct,
@@ -118,9 +118,9 @@ pub fn go_type_str(arg: Expression) -> (String, XType) {
         },
         Expression::Ident(x) => {
             if is_first_uppercase(x.name.clone()) {
-                return (x.name, XType::XTypeStruct);
+                return (x.name.clone(), XType::XTypeStruct);
             }
-            (x.name, XType::XTypeBasic)
+            (x.name.clone(), XType::XTypeBasic)
         }
         Expression::TypeMap(x) => (go_map_type_str(x), XType::XTypeMap),
         Expression::TypeArray(x) => (go_slice_type_str(x), XType::XTypeSlice),
@@ -129,12 +129,12 @@ pub fn go_type_str(arg: Expression) -> (String, XType) {
     }
 }
 
-pub fn go_func_args(xtype: FuncType) -> (Vec<XArg>, Vec<XArg>) {
+pub fn go_func_args(xtype: &FuncType) -> (Vec<XArg>, Vec<XArg>) {
     let mut params = Vec::new();
     let mut results = Vec::new();
     for (idx, param) in xtype.params.list.iter().enumerate() {
         let mut arg = XArg::default();
-        (arg.xtype, _) = go_type_str(param.typ.clone());
+        (arg.xtype, _) = go_type_str(&param.typ);
         if param.name.len() > 0 {
             arg.name = param.name[0].name.clone();
         } else {
@@ -148,9 +148,9 @@ pub fn go_func_args(xtype: FuncType) -> (Vec<XArg>, Vec<XArg>) {
         }
         params.push(arg);
     }
-    for ret in xtype.result.list {
+    for ret in &xtype.result.list {
         let mut arg = XArg::default();
-        (arg.xtype, _) = go_type_str(ret.typ);
+        (arg.xtype, _) = go_type_str(&ret.typ);
         if ret.name.len() > 0 {
             arg.name = ret.name[0].name.clone();
         }
@@ -175,7 +175,7 @@ pub fn go_interface_func(xtype: InterfaceType) -> HashMap<String, XMethod> {
                 }
             }
             gosyn::ast::Expression::TypeFunction(data) => {
-                let (params, results) = go_func_args(data);
+                let (params, results) = go_func_args(&data);
                 let method = XMethod {
                     name: mt.name[0].name.clone(),
                     impl_name: "impl".to_string(),
@@ -192,6 +192,59 @@ pub fn go_interface_func(xtype: InterfaceType) -> HashMap<String, XMethod> {
         }
     }
     methods
+}
+
+pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<String>) {
+    let mut fields = HashMap::new();
+    let mut child = Vec::new();
+    for (idx, fe) in xtype.fields.iter().enumerate() {
+        if fe.name.len() > 0 {
+            let name = fe.name[0].name.clone();
+            if is_first_lowwercase(name.clone()) {
+                continue;
+            }
+            let (xtype, stype) = go_type_str(&fe.typ);
+            let mut xf = XField {
+                name,
+                xtype,
+                stype,
+                idx: idx as i32,
+                tag: "".to_string(),
+                comment: "".to_string(),
+            };
+            if let Some(tag) = &fe.tag {
+                xf.tag = tag.value.clone();
+            }
+            xf.comment = fe.comments.iter().map(|x| x.text.clone()).collect();
+            fields.insert(xf.name.clone(), xf);
+        } else {
+            let name: Option<String> = match &fe.typ {
+                Expression::TypeMap(_) => Some(fe.name[0].name.clone()),
+                Expression::TypeArray(_) => Some(fe.name[0].name.clone()),
+                Expression::TypeSlice(_) => Some(fe.name[0].name.clone()),
+                Expression::TypeFunction(_) => Some(fe.name[0].name.clone()),
+                Expression::TypeStruct(xt) => {
+                    let (child_fields, child_child) = go_struct_field(xt);
+                    child.extend(child_child);
+                    for (k, v) in child_fields {
+                        if fields.contains_key(k.as_str()) {
+                            continue;
+                        }
+                        fields.insert(k, v);
+                    }
+                    None
+                }
+                Expression::TypeChannel(_) => Some(fe.name[0].name.clone()),
+                Expression::TypePointer(_) => Some(fe.name[0].name.clone()),
+                Expression::TypeInterface(_) => Some(fe.name[0].name.clone()),
+                _ => None,
+            };
+            if let Some(name) = name {
+                child.push(name);
+            }
+        }
+    }
+    (fields, child)
 }
 
 impl From<ast::File> for MetaGo {
@@ -214,9 +267,38 @@ impl From<ast::File> for MetaGo {
         }
         for decl in ast_file.decl {
             match decl {
-                ast::Declaration::Function(_) => todo!(),
+                ast::Declaration::Function(x) => {
+                    if let Some(recv) = x.recv {
+                        let (mut bind_name, mut impl_name) = ("".to_string(), "impl".to_string());
+                        for field in recv.list {
+                            (bind_name, _) = go_type_str(&field.typ);
+                            if field.name.len() > 0 {
+                                impl_name = field.name[0].name.clone();
+                            }
+                        }
+
+                        let (params, results) = go_func_args(&x.typ);
+                        let mtd = XMethod {
+                            impl_name,
+                            name: x.name.name.clone(),
+                            params,
+                            results,
+                            ..Default::default()
+                        };
+                        if !metaGo.bind_func_list.contains_key(&bind_name) {
+                            metaGo.bind_func_list = HashMap::new();
+                        }
+                        metaGo
+                            .bind_func_list
+                            .get_mut(&bind_name)
+                            .unwrap()
+                            .insert(mtd.name.clone(), mtd);
+                    } else {
+                    }
+                }
                 ast::Declaration::Type(x) => {
-                    let (mut used, mut impl_inf, mut gi_name, mut gi) = (true, "", "", false);
+                    let (mut used, mut impl_inf, mut gi_name, mut gi) =
+                        (true, "".to_string(), "".to_string(), false);
                     if x.docs.len() > 0 {
                         for comment in x.docs {
                             if comment.text.contains("@IGNORE") {
@@ -225,13 +307,13 @@ impl From<ast::File> for MetaGo {
                             if comment.text.contains("@IMPL[") {
                                 let rs = find_string_sub_match(&re_impl, &comment.text);
                                 if rs.len() > 1 {
-                                    impl_inf = rs[1].as_str();
+                                    impl_inf = rs[1].clone();
                                 }
                             }
                             if comment.text.contains("@GI") {
                                 let rs = find_string_sub_match(&re_di, &comment.text);
                                 if rs.len() > 1 {
-                                    gi_name = rs[1].as_str();
+                                    gi_name = rs[1].clone();
                                     gi = true;
                                 }
                             }
@@ -240,7 +322,27 @@ impl From<ast::File> for MetaGo {
                     for spec in x.specs {
                         let name = spec.name.name;
                         match spec.typ {
-                            ast::Expression::TypeStruct(xt) => {}
+                            ast::Expression::TypeStruct(xt) => {
+                                let (fields, child) = go_struct_field(&xt);
+                                let xst = XST {
+                                    gi_name: gi_name.to_string(),
+                                    gi,
+                                    impl_inf: impl_inf.to_string(),
+                                    imports: imports.clone(),
+                                    file: ast_file.path.to_str().unwrap().to_string(),
+                                    name: name.clone(),
+                                    short_name: "".to_string(),
+                                    mpoint: false,
+                                    cst: child,
+                                    methods: Vec::new(),
+                                    fields,
+                                };
+                                if !used {
+                                    metaGo.ot_list.insert(name, xst);
+                                    continue;
+                                }
+                                metaGo.st_list.insert(name, xst);
+                            }
                             ast::Expression::TypeInterface(xt) => {
                                 if !used {
                                     continue;
@@ -257,8 +359,8 @@ impl From<ast::File> for MetaGo {
                         }
                     }
                 }
-                ast::Declaration::Const(_) => todo!(),
-                ast::Declaration::Variable(_) => todo!(),
+                ast::Declaration::Const(_) => {}
+                ast::Declaration::Variable(_) => {}
             }
         }
         metaGo

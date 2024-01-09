@@ -18,3 +18,10 @@ pub fn is_first_uppercase(text: String) -> bool {
     }
     false
 }
+
+pub fn is_first_lowwercase(text: String) -> bool {
+    if let Some(first_char) = text.chars().next() {
+        return first_char.is_lowercase();
+    }
+    false
+}
