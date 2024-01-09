@@ -8,16 +8,31 @@ use crate::common::{file::path_str, go::MetaGo, str::find_string_sub_match};
 pub enum ParserType {
     ParserTypeGM,
 }
+#[derive(Clone)]
 pub enum MetaData {
     Doc(String),
     Go(MetaGo),
 }
+#[derive(Clone)]
 pub struct MetaNode {
     pub name: String,           //名字
     pub path: String,           //路径
     pub is_dir: bool,           //是否是目录
     pub childs: Vec<MetaNode>,  //子节点
     pub data: Option<MetaData>, //数据
+}
+impl MetaNode {
+    pub fn find_by_name(&self, name: &str) -> Option<MetaNode> {
+        if self.name == name {
+            return Some(self.clone());
+        }
+        for child in self.childs.iter() {
+            if let Some(meta) = child.find_by_name(name) {
+                return Some(meta);
+            }
+        }
+        None
+    }
 }
 
 pub enum ProcessType {

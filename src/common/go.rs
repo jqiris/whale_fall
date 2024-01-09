@@ -68,7 +68,7 @@ pub struct INF {
     pub imports: Vec<String>,
     pub methods: HashMap<String, XMethod>,
 }
-
+#[derive(Clone)]
 pub struct MetaGo {
     pub ast_file: Option<ast::File>,
     pub inf_list: HashMap<String, INF>,      //interface list
