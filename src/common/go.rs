@@ -316,7 +316,6 @@ impl From<ast::File> for MetaGo {
                                 impl_name = field.name[0].name.clone();
                             }
                         }
-
                         let (params, results) = go_func_args(&x.typ);
                         let mtd = XMethod {
                             impl_name,
