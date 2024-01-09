@@ -3,12 +3,11 @@ use std::{borrow::Borrow, collections::HashMap};
 use gosyn::ast::{self, *};
 use regex::Regex;
 
-use crate::core::meta::*;
-
 use super::{
     file::path_str,
     str::{find_string_sub_match, is_first_lowwercase, is_first_uppercase},
 };
+#[derive(Clone)]
 pub enum XType {
     XTypeNone,
     XTypeBasic,
@@ -17,21 +16,18 @@ pub enum XType {
     XTypeMap,
     XTypeTime,
 }
-
+impl Default for XType {
+    fn default() -> Self {
+        XType::XTypeNone
+    }
+}
+#[derive(Default, Clone)]
 pub struct XArg {
     pub name: String,
     pub xtype: String,
 }
 
-impl Default for XArg {
-    fn default() -> Self {
-        XArg {
-            name: "".to_string(),
-            xtype: "".to_string(),
-        }
-    }
-}
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct XMethod {
     pub impl_name: String,
     pub name: String,
@@ -42,7 +38,7 @@ pub struct XMethod {
     pub http_rule: String,
     pub http_method: String,
 }
-
+#[derive(Default, Clone)]
 pub struct XField {
     pub name: String,
     pub xtype: String,
@@ -51,7 +47,7 @@ pub struct XField {
     pub tag: String,
     pub comment: String,
 }
-
+#[derive(Default, Clone)]
 pub struct XST {
     pub gi_name: String,
     pub gi: bool,
@@ -62,7 +58,7 @@ pub struct XST {
     pub short_name: String,
     pub mpoint: bool,
     pub cst: Vec<String>,
-    pub methods: Vec<XMethod>,
+    pub methods: HashMap<String, XMethod>,
     pub fields: HashMap<String, XField>,
 }
 pub struct INF {
@@ -78,9 +74,53 @@ pub struct MetaGo {
     pub st_list: HashMap<String, XST>,       //struct list
     pub ot_list: HashMap<String, XST>,       //other type list
     pub const_list: HashMap<String, String>, //const list
-    pub bind_func_list: HashMap<String, HashMap<String, XMethod>>, //bind func
+    pub bind_func_maps: HashMap<String, HashMap<String, XMethod>>, //bind func
     pub func_list: HashMap<String, XMethod>, //func
     pub new_func_list: HashMap<String, XMethod>, //new func
+}
+
+impl MetaGo {
+    pub fn load_binds(&mut self) {
+        for (sname, sts) in self.st_list.iter_mut() {
+            let mut smths: HashMap<String, XMethod> = HashMap::new();
+            let mut point = false;
+            if let Some(mths) = self.bind_func_maps.get(sname) {
+                for (mname, mth) in mths {
+                    smths.insert(mname.clone(), mth.clone());
+                }
+            }
+            let xsname = format!("*{}", sname);
+            if let Some(mths) = self.bind_func_maps.get(&xsname) {
+                point = true;
+                for (mname, mth) in mths {
+                    smths.insert(mname.clone(), mth.clone());
+                }
+            }
+            for cs in sts.cst.iter() {
+                if let Some(cmths) = self.bind_func_maps.get(cs) {
+                    for (mname, mth) in cmths {
+                        smths.insert(mname.clone(), mth.clone());
+                    }
+                    let xcs = format!("*{}", cs);
+                    if let Some(cmths) = self.bind_func_maps.get(&xcs) {
+                        point = true;
+                        for (mname, mth) in cmths {
+                            smths.insert(mname.clone(), mth.clone());
+                        }
+                    }
+                }
+            }
+            if smths.len() < 1 {
+                continue;
+            }
+            sts.mpoint = point;
+            sts.methods = smths.clone();
+            for (_, mth) in smths {
+                sts.short_name = mth.impl_name.clone();
+                break;
+            }
+        }
+    }
 }
 
 pub fn go_map_type_str(arg: &MapType) -> String {
@@ -255,7 +295,7 @@ impl From<ast::File> for MetaGo {
             st_list: HashMap::new(),
             ot_list: HashMap::new(),
             const_list: HashMap::new(),
-            bind_func_list: HashMap::new(),
+            bind_func_maps: HashMap::new(),
             func_list: HashMap::new(),
             new_func_list: HashMap::new(),
         };
@@ -285,11 +325,11 @@ impl From<ast::File> for MetaGo {
                             results,
                             ..Default::default()
                         };
-                        if !meta_go.bind_func_list.contains_key(&bind_name) {
-                            meta_go.bind_func_list = HashMap::new();
+                        if !meta_go.bind_func_maps.contains_key(&bind_name) {
+                            meta_go.bind_func_maps = HashMap::new();
                         }
                         meta_go
-                            .bind_func_list
+                            .bind_func_maps
                             .get_mut(&bind_name)
                             .unwrap()
                             .insert(mtd.name.clone(), mtd);
@@ -334,7 +374,7 @@ impl From<ast::File> for MetaGo {
                                     short_name: "".to_string(),
                                     mpoint: false,
                                     cst: child,
-                                    methods: Vec::new(),
+                                    methods: HashMap::new(),
                                     fields,
                                 };
                                 if !used {
