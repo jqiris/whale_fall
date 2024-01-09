@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::HashMap;
 
 use crate::core::{
     meta::{MetaNode, ProcessData, ProcessType},
@@ -10,7 +11,15 @@ pub struct MimanProcesser {}
 
 impl IProcesser for MimanProcesser {
     fn process(&self, meta: MetaNode) -> Result<ProcessData> {
-        todo!()
+        let mut result = ProcessData {
+            lists: HashMap::new(),
+            maps: HashMap::new(),
+        };
+        let app_list = meta.find_list_by_name("cmd");
+        let micro_list = meta.find_list_by_name("micro");
+        result.lists.insert("app_list".to_string(), app_list);
+        result.lists.insert("micro_list".to_string(), micro_list);
+        Ok(result)
     }
 
     fn process_type(&self) -> ProcessType {
