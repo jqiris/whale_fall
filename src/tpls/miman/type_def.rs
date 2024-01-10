@@ -25,7 +25,7 @@ pub struct EntityTypeImport {
 
 impl EntityTypeImport {
     pub fn execute(&self) -> Result<String> {
-        let mut reg = Handlebars::new();
+        let reg = Handlebars::new();
         render_template(reg, ENTITY_TYPE_DEF_CODES, self)
     }
 }
