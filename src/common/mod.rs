@@ -1,7 +1,7 @@
 pub mod file;
 pub mod go;
 pub mod str;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error, Result};
 use handlebars::Handlebars;
 use serde::Serialize;
 
@@ -13,4 +13,8 @@ where
         Ok(output) => Ok(output),
         Err(err) => Err(anyhow!(err)),
     }
+}
+
+pub fn option_to_result<T>(option: Option<T>, err: Error) -> Result<T> {
+    option.ok_or(err)
 }

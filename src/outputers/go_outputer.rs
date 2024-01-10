@@ -1,5 +1,8 @@
-use crate::core::{meta::*, traits::IOutputer};
-use anyhow::Result;
+use crate::{
+    common::option_to_result,
+    core::{meta::*, traits::IOutputer},
+};
+use anyhow::{anyhow, Result};
 use core::fmt;
 use std::{fs, path::Path, process::Command};
 pub struct GoOutputer {}
@@ -30,9 +33,16 @@ impl GoOutputer {
     fn produce(&self, data: &GenerateData) -> Result<()> {
         //创建目录
         let file = Path::new(&data.path);
-        fs::create_dir_all(file.parent().unwrap())?;
+        let parent = option_to_result(file.parent(), anyhow!("invalid path"))?;
+        fs::create_dir_all(parent)?;
         fs::write(file, &data.content)?;
-        Command::new("gofmt").arg(&file).spawn()?;
+        let output = Command::new("gofmt").arg(&file).output()?;
+        if !output.status.success() {
+            return Err(anyhow!(
+                "gofmt error: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
         Ok(())
     }
 }
