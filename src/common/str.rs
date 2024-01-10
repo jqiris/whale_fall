@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use regex::Regex;
 
 pub fn find_string_sub_match(re: &Regex, text: &str) -> Vec<String> {
@@ -24,4 +26,17 @@ pub fn is_first_lowwercase(text: String) -> bool {
         return first_char.is_lowercase();
     }
     false
+}
+
+pub fn parse_field_tag_map(tag: &str) -> HashMap<String, String> {
+    let tag_parts: Vec<&str> = tag.split("\" ").collect();
+    let mut result = HashMap::new();
+    for parts in tag_parts {
+        let pairs: Vec<&str> = parts.splitn(2, ':').collect();
+        if pairs.len() < 2 {
+            continue;
+        }
+        result.insert(pairs[0].to_string(), pairs[1].trim_matches('"').to_string());
+    }
+    result
 }

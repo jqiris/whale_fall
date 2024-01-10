@@ -7,14 +7,14 @@ use super::{
     file::path_str,
     str::{find_string_sub_match, is_first_lowwercase, is_first_uppercase},
 };
-#[derive(Clone)]
+#[derive(Clone, PartialEq, PartialOrd)]
 pub enum XType {
-    XTypeNone,
-    XTypeBasic,
-    XTypeStruct,
-    XTypeSlice,
-    XTypeMap,
-    XTypeTime,
+    XTypeNone = -1,
+    XTypeBasic = 0,
+    XTypeStruct = 1,
+    XTypeSlice = 2,
+    XTypeMap = 3,
+    XTypeTime = 4,
 }
 impl Default for XType {
     fn default() -> Self {
