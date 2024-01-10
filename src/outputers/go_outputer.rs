@@ -29,8 +29,8 @@ impl IOutputer for GoOutputer {
 impl GoOutputer {
     fn produce(&self, data: &GenerateData) -> Result<()> {
         //创建目录
-        fs::create_dir_all(&data.path)?;
         let file = Path::new(&data.path);
+        fs::create_dir_all(file.parent().unwrap())?;
         fs::write(file, &data.content)?;
         Command::new("gofmt").arg(&file).spawn()?;
         Ok(())

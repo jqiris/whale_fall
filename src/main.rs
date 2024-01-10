@@ -26,6 +26,8 @@ fn generate() {
         Commands::Generate(args) => app.generate(args),
     };
     if let Err(err) = res {
-        println!("exec error: {}", err);
+        println!("generate error: {}", err);
+    } else {
+        println!("generate success");
     }
 }
