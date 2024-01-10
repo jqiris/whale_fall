@@ -1,0 +1,9 @@
+[basic]
+package = "examples"
+root = "D:\\workspace\\studys\\gen\\examples"
+
+[[composer]]
+parsers = ["gm"]
+processers = ["miman"]
+generators = ["miman"]
+outputers = ["go", "md"]

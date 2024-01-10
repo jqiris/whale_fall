@@ -7,7 +7,7 @@ use super::{
     file::path_str,
     str::{find_string_sub_match, is_first_lowwercase, is_first_uppercase},
 };
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum XType {
     XTypeNone = -1,
     XTypeBasic = 0,
@@ -21,13 +21,13 @@ impl Default for XType {
         XType::XTypeNone
     }
 }
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct XArg {
     pub name: String,
     pub xtype: String,
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct XMethod {
     pub impl_name: String,
     pub name: String,
@@ -38,7 +38,7 @@ pub struct XMethod {
     pub http_rule: String,
     pub http_method: String,
 }
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct XField {
     pub name: String,
     pub xtype: String,
@@ -47,7 +47,7 @@ pub struct XField {
     pub tag: String,
     pub comment: String,
 }
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct XST {
     pub gi_name: String,
     pub gi: bool,
@@ -61,14 +61,14 @@ pub struct XST {
     pub methods: HashMap<String, XMethod>,
     pub fields: HashMap<String, XField>,
 }
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct INF {
     pub name: String,
     pub file: String,
     pub imports: Vec<String>,
     pub methods: HashMap<String, XMethod>,
 }
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct MetaGo {
     pub ast_file: Option<ast::File>,
     pub inf_list: HashMap<String, INF>,      //interface list
@@ -375,7 +375,9 @@ impl From<ast::File> for MetaGo {
                             ..Default::default()
                         };
                         if !meta_go.bind_func_maps.contains_key(&bind_name) {
-                            meta_go.bind_func_maps = HashMap::new();
+                            meta_go
+                                .bind_func_maps
+                                .insert(bind_name.clone(), HashMap::new());
                         }
                         meta_go
                             .bind_func_maps

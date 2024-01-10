@@ -33,6 +33,7 @@ impl IGenerator for MimanGenerator {
                 list.push(self.gen_entity(pkg, entity)?);
             }
         }
+        println!("miman generator done:{:?}", list);
         //micro
         Ok(list)
     }

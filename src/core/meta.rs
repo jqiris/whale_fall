@@ -4,12 +4,12 @@ use std::collections::HashMap;
 pub enum ParserType {
     ParserTypeGM,
 }
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum MetaData {
     Md(String),
     Go(MetaGo),
 }
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct MetaNode {
     pub name: String,           //名字
     pub path: String,           //路径
@@ -56,23 +56,35 @@ pub enum ProcessType {
     ProcessTypeMiman,
 }
 
+#[derive(Default, Clone)]
 pub struct ProcessData {
     pub lists: HashMap<String, Vec<MetaNode>>,
     pub maps: HashMap<String, MetaNode>,
 }
-
+#[derive(Debug, Clone)]
 pub enum GenerateType {
     GenerateTypeMiman,
 }
-
+impl Default for GenerateType {
+    fn default() -> Self {
+        GenerateType::GenerateTypeMiman
+    }
+}
+#[derive(Debug, Default, Clone)]
 pub struct GenerateData {
     pub path: String,
     pub gen_type: GenerateType,
     pub out_type: OutputType,
     pub content: String,
 }
-
+#[derive(Debug, Clone)]
 pub enum OutputType {
     OutputTypeGo,
     OutputTypeMd,
+}
+
+impl Default for OutputType {
+    fn default() -> Self {
+        OutputType::OutputTypeGo
+    }
 }
