@@ -4,6 +4,7 @@ mod app;
 mod common;
 mod core;
 mod generators;
+mod outputers;
 mod parsers;
 mod processers;
 mod tpls;
@@ -16,6 +17,7 @@ fn register() {
     parsers::register();
     processers::register();
     generators::register();
+    outputers::register();
 }
 
 fn generate() {

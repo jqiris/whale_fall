@@ -77,7 +77,7 @@ pub struct GenerateData {
     pub out_type: OutputType,
     pub content: String,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OutputType {
     OutputTypeGo,
     OutputTypeMd,

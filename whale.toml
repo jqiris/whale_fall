@@ -6,4 +6,4 @@ root = "D:\\workspace\\studys\\gen\\examples"
 parsers = ["gm"]
 processers = ["miman"]
 generators = ["miman"]
-outputers = ["go", "md"]
+outputers = ["go"]
