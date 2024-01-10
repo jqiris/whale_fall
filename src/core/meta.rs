@@ -47,7 +47,7 @@ pub enum ProcessType {
 
 pub struct ProcessData {
     pub lists: HashMap<String, Vec<MetaNode>>,
-    pub maps: HashMap<String, HashMap<String, MetaNode>>,
+    pub maps: HashMap<String, MetaNode>,
 }
 
 pub enum GenerateType {

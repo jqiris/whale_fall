@@ -1,5 +1,6 @@
 mod common;
 mod core;
+mod generators;
 mod parsers;
 mod processers;
 fn main() {
@@ -9,4 +10,5 @@ fn main() {
 fn register() {
     parsers::register();
     processers::register();
+    generators::register();
 }

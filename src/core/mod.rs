@@ -59,9 +59,9 @@ pub fn process(name: &str, data: MetaNode) -> Result<ProcessData> {
     }
 }
 
-pub fn generate(name: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
+pub fn generate(name: &str, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
     match GENERATOR.lock().unwrap().get(name) {
-        Some(generator) => generator.generate(data),
+        Some(generator) => generator.generate(pkg, data),
         None => Err(anyhow::anyhow!("generator {} not found", name)),
     }
 }

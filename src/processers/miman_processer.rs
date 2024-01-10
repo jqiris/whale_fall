@@ -15,10 +15,14 @@ impl IProcesser for MimanProcesser {
             lists: HashMap::new(),
             maps: HashMap::new(),
         };
-        let app_list = meta.find_list_by_name("cmd");
-        let micro_list = meta.find_list_by_name("micro");
-        result.lists.insert("app_list".to_string(), app_list);
-        result.lists.insert("micro_list".to_string(), micro_list);
+        let business = meta.find_by_name("business");
+        let micro = meta.find_by_name("micro");
+        if let Some(data) = business {
+            result.maps.insert("business".to_string(), data);
+        }
+        if let Some(data) = micro {
+            result.maps.insert("micro".to_string(), data);
+        }
         Ok(result)
     }
 

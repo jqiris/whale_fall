@@ -15,7 +15,7 @@ pub trait IProcesser: fmt::Display {
 
 pub trait IGenerator: fmt::Display {
     fn generate_type(&self) -> GenerateType;
-    fn generate(&self, data: ProcessData) -> Result<Vec<GenerateData>>;
+    fn generate(&self, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>>;
 }
 
 pub trait IOutputer: fmt::Display {
