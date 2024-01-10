@@ -42,7 +42,7 @@ impl MimanGenerator {
     fn gen_entity(&self, pkg: &str, data: MetaNode) -> Result<GenerateData> {
         let mut gen_data = GenerateData {
             path: path_join(&[&data.path, "type_def_code_gen.go"]),
-            gen_type: GenerateType::GenerateTypeMiman,
+            gen_type: self.generate_type(),
             out_type: OutputType::OutputTypeGo,
             content: "".to_string(),
         };
