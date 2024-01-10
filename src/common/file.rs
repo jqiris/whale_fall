@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn path_name(pwd: &Path) -> String {
     let mut name = "".to_string();
@@ -16,4 +16,12 @@ pub fn path_str(pwd: &Path) -> String {
         name = file_name.to_string();
     }
     name
+}
+
+pub fn path_join(parts: &[&str]) -> String {
+    let mut path = PathBuf::new();
+    for part in parts {
+        path.push(part);
+    }
+    path.to_string_lossy().into_owned()
 }

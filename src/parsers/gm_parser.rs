@@ -38,7 +38,7 @@ impl IParser for GMParser {
                         meta_node.data = Some(MetaData::Go(meta_go));
                     } else if ext == Some(OsStr::new("md")) {
                         let content = fs::read_to_string(pwd)?;
-                        meta_node.data = Some(MetaData::Doc(content));
+                        meta_node.data = Some(MetaData::Md(content));
                     }
                 } else if metadata.is_dir() {
                     for entry in fs::read_dir(pwd)? {

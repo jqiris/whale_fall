@@ -2,6 +2,7 @@ use core::fmt;
 
 use crate::{
     common::{
+        file::path_join,
         go::{XType, XST},
         str::parse_field_tag_map,
     },
@@ -22,12 +23,41 @@ impl IGenerator for MimanGenerator {
         GenerateType::GenerateTypeMiman
     }
 
-    fn generate(&self, pkg: &str, data: ProcessData) -> anyhow::Result<Vec<GenerateData>> {
-        todo!()
+    fn generate(&self, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        //business
+        if let Some(buiness) = data.maps.get("business") {
+            //entity list
+            let entity_list = buiness.find_list_by_name("entity");
+            for entity in entity_list {
+                list.push(self.gen_entity(pkg, entity)?);
+            }
+        }
+        //micro
+        Ok(list)
     }
 }
 
 impl MimanGenerator {
+    fn gen_entity(&self, pkg: &str, data: MetaNode) -> Result<GenerateData> {
+        let mut gen_data = GenerateData {
+            path: path_join(&[&data.path, "type_def_code_gen.go"]),
+            gen_type: GenerateType::GenerateTypeMiman,
+            out_type: OutputType::OutputTypeGo,
+            content: "".to_string(),
+        };
+        let xst_list = data.go_struct_list();
+        let import = EntityTypeImport {
+            project_name: pkg.to_string(),
+            package_name: "entity".to_string(),
+        };
+        let mut buf = import.execute()?;
+        for xst in xst_list {
+            buf += &self.type_def(pkg, xst)?;
+        }
+        gen_data.content = buf;
+        Ok(gen_data)
+    }
     fn type_def(&self, pkg: &str, xst: XST) -> Result<String> {
         let mut tpl = EntityTypeMap {
             project_name: pkg.to_string(),

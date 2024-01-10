@@ -1,4 +1,4 @@
-use crate::common::go::MetaGo;
+use crate::common::go::{MetaGo, XST};
 use std::collections::HashMap;
 
 pub enum ParserType {
@@ -6,7 +6,7 @@ pub enum ParserType {
 }
 #[derive(Clone)]
 pub enum MetaData {
-    Doc(String),
+    Md(String),
     Go(MetaGo),
 }
 #[derive(Clone)]
@@ -39,6 +39,17 @@ impl MetaNode {
         }
         list
     }
+
+    pub fn go_struct_list(&self) -> Vec<XST> {
+        let mut list = Vec::new();
+        if let Some(data) = &self.data {
+            if let MetaData::Go(go) = data {
+                list.append(&mut go.st_list.values().cloned().collect());
+            }
+        }
+        list.sort_by(|a, b| a.name.cmp(&b.name));
+        list
+    }
 }
 
 pub enum ProcessType {
@@ -54,7 +65,12 @@ pub enum GenerateType {
     GenerateTypeMiman,
 }
 
-pub struct GenerateData {}
+pub struct GenerateData {
+    pub path: String,
+    pub gen_type: GenerateType,
+    pub out_type: OutputType,
+    pub content: String,
+}
 
 pub enum OutputType {
     OutputTypeGo,
