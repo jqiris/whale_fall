@@ -1,5 +1,4 @@
 use anyhow::Result;
-use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
 
 use crate::tpls::engine::render_template;
@@ -7,7 +6,15 @@ use crate::tpls::engine::render_template;
 const DO_TPL: &str = r#"
 type {{name}}Do struct {
     {{#each fields}}
-       {{name}}
+        {{#if (eq stype 4)}}
+        {{name}} *{{type_}} {{tag}} // {{comment}}
+        {{/if}}
+        {{#if (and (gt stype 0) (lt stype 4))}}
+        {{name}} string {{tag}} // {{comment}}
+        {{/if}}
+        {{#if (or (le stype 0) (gt stype 4))}}
+        {{name}} {{type_}} {{tag}} // {{comment}}
+        {{/if}}
     {{/each}}
         {{#if delete_at}}
         DeletedAt gorm.DeletedAt ` + "`" + `db:"deleted_at" gorm:"column:deleted_at"` + "`" + ` // 软删除标识
@@ -26,6 +33,7 @@ impl Do {
         render_template(DO_TPL, self)
     }
 }
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct DoField {
     pub name: String,

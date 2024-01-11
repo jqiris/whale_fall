@@ -33,17 +33,21 @@ fn do_def_use() {
     let fields = vec![
         DoField {
             name: "ID".to_string(),
+            stype: 4,
+            type_: "int".to_string(),
             ..Default::default()
         },
         DoField {
             name: "Name".to_string(),
+            stype: 2,
+            type_: "int64".to_string(),
             ..Default::default()
         },
     ];
     let doi = Do {
         name: "DoTest".to_string(),
         fields,
-        delete_at: false,
+        delete_at: true,
     };
     let res = doi.execute();
     println!("{:?}", res);

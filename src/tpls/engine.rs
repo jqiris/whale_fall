@@ -5,12 +5,31 @@ use serde::Serialize;
 use std::sync::Mutex;
 
 use crate::tpls::miman::type_def::Field;
-
+handlebars_helper!(eq: |x: i32, y: i32| x == y);
+handlebars_helper!(ne: |x: i32, y: i32| x != y);
+handlebars_helper!(gt: |x: i32, y: i32| x > y);
+handlebars_helper!(ge: |x: i32, y: i32| x >= y);
+handlebars_helper!(lt: |x: i32, y: i32| x < y);
+handlebars_helper!(le: |x: i32, y: i32| x <= y);
+handlebars_helper!(and: |x: bool, y: bool| x && y);
+handlebars_helper!(or: |x: bool, y: bool| x || y);
+handlebars_helper!(not: |x: bool| x == false);
 handlebars_helper!(field_access: |x: Field, y: String|  format!("{}.{}", y, x.field));
 
 lazy_static! {
     static ref TPLS: Mutex<Handlebars<'static>> = {
         let mut reg = Handlebars::new();
+        //basic
+        reg.register_helper("eq", Box::new(eq));
+        reg.register_helper("ne", Box::new(ne));
+        reg.register_helper("gt", Box::new(gt));
+        reg.register_helper("ge", Box::new(ge));
+        reg.register_helper("lt", Box::new(lt));
+        reg.register_helper("le", Box::new(le));
+        reg.register_helper("and", Box::new(and));
+        reg.register_helper("or", Box::new(or));
+        reg.register_helper("not", Box::new(not));
+        //extend
         reg.register_helper("field_access", Box::new(field_access));
         Mutex::new(reg)
     };
