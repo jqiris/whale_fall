@@ -9,7 +9,7 @@ func New{{dao_name}}() *{{dao_name}} {
   return &{{dao_name}}{}
 }
 
-{{if pk_name}}func (dao *{{dao_name}}) GetById(session *gorm.DB, id {{pk_type}}) (*do.{{entity_name}}, error) {
+{{#if (not_empty pk_name)}}func (dao *{{dao_name}}) GetById(session *gorm.DB, id {{pk_type}}) (*do.{{entity_name}}, error) {
 	result := &do.{{entity_name}}{}
 	err := session.Where("{{pk_col}} = ?", id).First(result).Error
 	if err != nil {
@@ -17,16 +17,16 @@ func New{{dao_name}}() *{{dao_name}} {
 	}
 	return result, nil
 } 
-{{end}}
+{{/if}}
 
-{{if pk_name}}func (dao *{{dao_name}}) GetByIdList(session *gorm.DB, idList []{{pk_type}}) (do.{{entity_list_name}}, error) {
+{{#if (not_empty pk_name)}}func (dao *{{dao_name}}) GetByIdList(session *gorm.DB, idList []{{pk_type}}) (do.{{entity_list_name}}, error) {
 	result := make([]*do.{{entity_name}}, 0)
 	if err := session.Where("{{pk_col}} in (?)", idList).Find(&result).Error; err != nil {
 		return nil, errors.Wrapf(err, "{{dao_name}} GetByIdList failed")
 	}
 	return result, nil
 } 
-{{end}}
+{{/if}}
 
 func (dao *{{dao_name}}) Create(session *gorm.DB, data *do.{{entity_name}}) error {
 	err := session.Create(data).Error
