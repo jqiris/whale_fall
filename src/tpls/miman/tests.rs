@@ -46,9 +46,16 @@ fn do_def_use() {
     ];
     let doi = Do {
         name: "DoTest".to_string(),
-        fields,
+        fields: fields.clone(),
         delete_at: true,
     };
     let res = doi.execute();
+    println!("{:?}", res);
+
+    let do_conv = DoConv {
+        name: "DoConv".to_string(),
+        fields,
+    };
+    let res = do_conv.execute();
     println!("{:?}", res);
 }

@@ -14,14 +14,14 @@ pub fn find_string_sub_match(re: &Regex, text: &str) -> Vec<String> {
     list
 }
 
-pub fn is_first_uppercase(text: String) -> bool {
+pub fn is_first_uppercase(text: &str) -> bool {
     if let Some(first_char) = text.chars().next() {
         return first_char.is_uppercase();
     }
     false
 }
 
-pub fn is_first_lowwercase(text: String) -> bool {
+pub fn is_first_lowwercase(text: &str) -> bool {
     if let Some(first_char) = text.chars().next() {
         return first_char.is_lowercase();
     }
@@ -39,4 +39,18 @@ pub fn parse_field_tag_map(tag: &str) -> HashMap<String, String> {
         result.insert(pairs[0].to_string(), pairs[1].trim_matches('"').to_string());
     }
     result
+}
+
+pub fn search_index(body: &str, search: &str) -> i64 {
+    match body.find(search) {
+        Some(idx) => idx as i64,
+        None => -1,
+    }
+}
+
+pub fn first_upper_index(body: &str) -> i64 {
+    match body.find(|c: char| c.is_uppercase()) {
+        Some(idx) => idx as i64,
+        None => -1,
+    }
 }

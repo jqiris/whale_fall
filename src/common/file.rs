@@ -25,3 +25,15 @@ pub fn path_join(parts: &[&str]) -> String {
     }
     path.to_string_lossy().into_owned()
 }
+
+pub fn path_parent(path: &str) -> String {
+    let path = Path::new(path);
+    path.parent().unwrap().to_string_lossy().into_owned()
+}
+
+pub fn rel_path(root: &str, path: &str) -> String {
+    let mut rel_path = path.strip_prefix(root).unwrap_or(path).to_string();
+    rel_path = rel_path.replace("\\", "/");
+    rel_path = rel_path.strip_prefix("/").unwrap_or(&rel_path).to_string();
+    rel_path
+}

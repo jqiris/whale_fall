@@ -38,6 +38,21 @@ pub struct XMethod {
     pub http_rule: String,
     pub http_method: String,
 }
+
+#[derive(Debug, Default, Clone)]
+pub struct TagDesc {
+    pub json: Option<TagItem>,
+    pub pb: Option<TagItem>,
+    pub db: Option<TagItem>,
+    pub validate: Option<TagItem>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TagItem {
+    pub name: String,
+    pub txt: String,
+    pub opts: HashMap<String, String>,
+}
 #[derive(Debug, Default, Clone)]
 pub struct XField {
     pub name: String,
@@ -46,6 +61,47 @@ pub struct XField {
     pub idx: i32,
     pub tag: String,
     pub comment: String,
+}
+
+impl XField {
+    pub fn get_tag(&self, tag: &str) -> Option<TagItem> {
+        let re = Regex::new(&(tag.to_owned() + r#":"(\S+)""#)).unwrap();
+        if let Some(rs) = re.captures(&self.tag) {
+            let txt = rs.get(1).unwrap().as_str().to_owned();
+            if txt == "-" {
+                return Some(TagItem {
+                    name: "-".to_owned(),
+                    txt: "-".to_owned(),
+                    opts: HashMap::new(),
+                });
+            }
+            let mut it = TagItem {
+                name: txt.clone(),
+                txt: txt.clone(),
+                opts: HashMap::new(),
+            };
+            if txt.contains(":") || txt.contains(";") {
+                it.name = self.name.clone();
+                let tmp: Vec<&str> = txt.split(';').collect();
+                for (idx, s) in tmp.iter().enumerate() {
+                    if idx == 0 {
+                        it.name = s.to_string();
+                    }
+                    let r: Vec<&str> = s.split(':').collect();
+                    if r.len() == 2 {
+                        it.opts.insert(r[0].to_owned(), r[1].to_owned());
+                        if r[0] == "column" {
+                            it.name = r[1].to_owned();
+                        }
+                    } else {
+                        it.opts.insert(r[0].to_owned(), "".to_owned());
+                    }
+                }
+            }
+            return Some(it);
+        }
+        None
+    }
 }
 #[derive(Debug, Default, Clone)]
 pub struct XST {
@@ -199,7 +255,7 @@ pub fn go_type_str(arg: &Expression) -> (String, XType) {
                 XType::XTypeStruct,
             ),
             Expression::Ident(_type) => {
-                if is_first_uppercase(_type.name.clone()) {
+                if is_first_uppercase(&_type.name) {
                     return (format!("*{}", _type.name), XType::XTypeStruct);
                 }
                 (format!("*{}", _type.name), XType::XTypeBasic)
@@ -207,7 +263,7 @@ pub fn go_type_str(arg: &Expression) -> (String, XType) {
             _ => ("".to_string(), XType::XTypeNone),
         },
         Expression::Ident(x) => {
-            if is_first_uppercase(x.name.clone()) {
+            if is_first_uppercase(&x.name) {
                 return (x.name.clone(), XType::XTypeStruct);
             }
             (x.name.clone(), XType::XTypeBasic)
@@ -290,7 +346,7 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
     for (idx, fe) in xtype.fields.iter().enumerate() {
         if fe.name.len() > 0 {
             let name = fe.name[0].name.clone();
-            if is_first_lowwercase(name.clone()) {
+            if is_first_lowwercase(&name) {
                 continue;
             }
             let (xtype, stype) = go_type_str(&fe.typ);
