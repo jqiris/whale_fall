@@ -1,5 +1,5 @@
+use super::do_def::*;
 use super::type_def::*;
-
 #[test]
 fn type_def_use() {
     let fields = vec![
@@ -26,4 +26,25 @@ fn type_def_use() {
     // assert!(res.is_ok());
     // assert!(res.unwrap().contains("func (e *User) String() string"));
     println!("{}", res.unwrap());
+}
+
+#[test]
+fn do_def_use() {
+    let fields = vec![
+        DoField {
+            name: "ID".to_string(),
+            ..Default::default()
+        },
+        DoField {
+            name: "Name".to_string(),
+            ..Default::default()
+        },
+    ];
+    let doi = Do {
+        name: "DoTest".to_string(),
+        fields,
+        delete_at: false,
+    };
+    let res = doi.execute();
+    println!("{:?}", res);
 }

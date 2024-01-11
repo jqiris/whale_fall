@@ -56,7 +56,12 @@ impl App {
             let mut generate_list = Vec::new();
             for generator in composer.generators {
                 for process in &process_list {
-                    let mut gen_list = generate(&generator, &cfg.basic.package, process.clone())?;
+                    let mut gen_list = generate(
+                        &generator,
+                        &cfg.basic.root,
+                        &cfg.basic.package,
+                        process.clone(),
+                    )?;
                     generate_list.append(&mut gen_list);
                 }
             }

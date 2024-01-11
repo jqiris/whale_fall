@@ -23,7 +23,7 @@ impl IGenerator for MimanGenerator {
         GenerateType::GenerateTypeMiman
     }
 
-    fn generate(&self, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
+    fn generate(&self, root: &str, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
         let mut list = Vec::new();
         //business
         if let Some(buiness) = data.maps.get("business") {
@@ -34,6 +34,13 @@ impl IGenerator for MimanGenerator {
             }
         }
         //micro
+        if let Some(micro) = data.maps.get("micro") {
+            //entity list
+            let entity_list = micro.find_list_by_name("entity");
+            for entity in entity_list {
+                list.push(self.gen_entity(pkg, entity)?);
+            }
+        }
         Ok(list)
     }
 }
