@@ -7,7 +7,7 @@ package {{package}}
 
 import (
 {{#each imports }}
-{{this}}
+"{{{this}}}"
 {{/each}}
 )
 "#;
