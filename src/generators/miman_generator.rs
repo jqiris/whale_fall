@@ -1,13 +1,16 @@
 use core::fmt;
+use std::collections::HashMap;
 
 use crate::{
     common::{
         file::{path_join, path_parent, rel_path},
         go::{XField, XType, XST},
-        str::{first_upper_index, is_first_uppercase, parse_field_tag_map, search_index},
+        str::{
+            first_upper_index, is_first_uppercase, parse_field_tag_map, search_index, to_snake_case,
+        },
     },
     core::{meta::*, traits::IGenerator},
-    tpls::miman::{do_def, header, type_def},
+    tpls::miman::{do_def, header, repo_def, type_def},
 };
 use anyhow::Result;
 pub struct MimanGenerator {}
@@ -33,6 +36,8 @@ impl IGenerator for MimanGenerator {
                 list.push(self.gen_entity(pkg, &entity)?);
                 let mut do_list = self.gen_do(root, pkg, &entity)?;
                 list.append(&mut do_list);
+                let mut repo_list = self.gen_repos(root, pkg, &entity)?;
+                list.append(&mut repo_list);
             }
         }
         //micro
@@ -50,6 +55,63 @@ impl IGenerator for MimanGenerator {
 }
 
 impl MimanGenerator {
+    fn gen_repos(&self, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let path_parent = path_parent(&data.path);
+        let rel_path = rel_path(root, &path_parent);
+        let pkg_path = format!("{}/{}", pkg, rel_path);
+        let mut entity_list: Vec<String> = Vec::new();
+        let mut has_id_map: HashMap<String, bool> = HashMap::new();
+        let xst_list = data.go_struct_list();
+        for xst in xst_list {
+            for (_, field) in &xst.fields {
+                let tag = field.get_tag("db");
+                if let Some(tag) = tag {
+                    if tag.txt != "-" {
+                        entity_list.push(xst.name.clone());
+                        break;
+                    }
+                }
+            }
+            for (_, field) in xst.fields {
+                if field.name == "ID" {
+                    has_id_map.insert(xst.name.clone(), true);
+                    break;
+                }
+            }
+        }
+        for entity in entity_list {
+            let table_name = to_snake_case(&entity);
+            let tpl = repo_def::Repo {
+                project_name: pkg.to_string(),
+                app_pkg_path: pkg_path.clone(),
+                entity_name: entity.clone(),
+                table_name: table_name.clone(),
+                has_id: has_id_map.get(&entity).unwrap_or(&false).to_owned(),
+            };
+            let (buf_repo, buf_dbal) = (tpl.execute()?, tpl.execute_impl()?);
+            list.append(&mut vec![
+                GenerateData {
+                    path: path_join(&[&path_parent, "repo", &format!("{}_repo.go", table_name)]),
+                    gen_type: self.generate_type(),
+                    out_type: OutputType::OutputTypeGo,
+                    content: buf_repo,
+                },
+                GenerateData {
+                    path: path_join(&[
+                        &path_parent,
+                        "repo",
+                        "dbal",
+                        &format!("{}_dbal.go", table_name),
+                    ]),
+                    gen_type: self.generate_type(),
+                    out_type: OutputType::OutputTypeGo,
+                    content: buf_dbal,
+                },
+            ]);
+        }
+        Ok(list)
+    }
     fn gen_do(&self, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
         let header_do = header::Header {
             package: "do".to_string(),

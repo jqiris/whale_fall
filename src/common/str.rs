@@ -54,3 +54,19 @@ pub fn first_upper_index(body: &str) -> i64 {
         None => -1,
     }
 }
+
+pub fn to_snake_case(str: &str) -> String {
+    let mut result = String::new();
+
+    for (i, c) in str.chars().enumerate() {
+        if c.is_uppercase() {
+            if i > 0 {
+                result.push('_');
+            }
+            result.push(c.to_lowercase().next().unwrap());
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
