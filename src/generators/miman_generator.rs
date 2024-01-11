@@ -57,6 +57,12 @@ impl IGenerator for MimanGenerator {
                 let mut repo_list = self.gen_repos(root, pkg, &entity)?;
                 list.append(&mut repo_list);
             }
+            //do list
+            let do_list = micro.find_list_by_name("do");
+            for ido in do_list {
+                let mut do_next_list = self.gen_do_next(root, pkg, &ido)?;
+                list.append(&mut do_next_list);
+            }
         }
         Ok(list)
     }
