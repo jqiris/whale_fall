@@ -249,15 +249,15 @@ pub fn go_slice_type_str(arg: &ArrayType) -> String {
 pub fn go_type_str(arg: &Expression) -> (String, XType) {
     match arg {
         Expression::Selector(x) => {
-            let (point, _) = go_type_str(&x.x);
+            let (point, xtype) = go_type_str(&x.x);
             let name = format!("{}.{}", point, x.sel.name);
-            (name, XType::XTypeStruct)
+            (name, xtype)
         }
         Expression::Star(x) => match x.right.borrow() {
             Expression::Selector(_type) => {
-                let (point, _) = go_type_str(&_type.x);
-                let name = format!("{:?}.{}", point, _type.sel.name);
-                (name, XType::XTypeStruct)
+                let (point, xtype) = go_type_str(&_type.x);
+                let name = format!("{}.{}", point, _type.sel.name);
+                (name, xtype)
             }
             Expression::Ident(_type) => {
                 if is_first_uppercase(&_type.name) {
