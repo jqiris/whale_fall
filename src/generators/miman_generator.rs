@@ -10,7 +10,7 @@ use crate::{
         },
     },
     core::{meta::*, traits::IGenerator},
-    tpls::miman::{do_def, header, repo_def, type_def},
+    tpls::miman::{dao_def, do_def, header, repo_def, type_def},
 };
 use anyhow::Result;
 pub struct MimanGenerator {}
@@ -39,6 +39,12 @@ impl IGenerator for MimanGenerator {
                 let mut repo_list = self.gen_repos(root, pkg, &entity)?;
                 list.append(&mut repo_list);
             }
+            //do list
+            let do_list = buiness.find_list_by_name("do");
+            for ido in do_list {
+                let mut do_next_list = self.gen_do_next(root, pkg, &ido)?;
+                list.append(&mut do_next_list);
+            }
         }
         //micro
         if let Some(micro) = data.maps.get("micro") {
@@ -48,6 +54,8 @@ impl IGenerator for MimanGenerator {
                 list.push(self.gen_entity(pkg, &entity)?);
                 let mut do_list = self.gen_do(root, pkg, &entity)?;
                 list.append(&mut do_list);
+                let mut repo_list = self.gen_repos(root, pkg, &entity)?;
+                list.append(&mut repo_list);
             }
         }
         Ok(list)
@@ -55,6 +63,49 @@ impl IGenerator for MimanGenerator {
 }
 
 impl MimanGenerator {
+    fn gen_do_next(&self, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
+        let path_parent = path_parent(&data.path);
+        let rel_path = rel_path(root, &path_parent);
+        let pkg_path = format!("{}/{}", pkg, rel_path);
+        let xst_list = data.go_struct_list();
+        let header_do = type_def::EntityTypeImport {
+            project_name: pkg.to_string(),
+            package_name: "do".to_string(),
+        };
+        let mut buf_do = header_do.execute()?;
+        let header_dao = header::Header {
+            package: pkg.to_string(),
+            imports: vec![
+                "github.com/pkg/errors".to_string(),
+                "gorm.io/gorm".to_string(),
+                format!("{}/do", pkg_path),
+            ],
+            allow_edit: false,
+        };
+        let mut buf_dao = header_dao.execute()?;
+        for xst in xst_list {
+            let _buf_do = self.type_def(pkg, &xst)?;
+            buf_do += &_buf_do;
+            let _buf_dao = self.dao_def(&xst)?;
+            buf_dao += &_buf_dao;
+        }
+
+        let list = vec![
+            GenerateData {
+                path: path_join(&[&path_parent, "do", "type_def_code_gen.go"]),
+                gen_type: self.generate_type(),
+                out_type: OutputType::OutputTypeGo,
+                content: buf_do,
+            },
+            GenerateData {
+                path: path_join(&[&path_parent, "dao", "dao_gen.go"]),
+                gen_type: self.generate_type(),
+                out_type: OutputType::OutputTypeGo,
+                content: buf_dao,
+            },
+        ];
+        Ok(list)
+    }
     fn gen_repos(&self, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
         let mut list = Vec::new();
         let path_parent = path_parent(&data.path);
@@ -175,10 +226,39 @@ impl MimanGenerator {
         };
         let mut buf = import.execute()?;
         for xst in xst_list {
-            buf += &self.type_def(pkg, xst)?;
+            buf += &self.type_def(pkg, &xst)?;
         }
         gen_data.content = buf;
         Ok(gen_data)
+    }
+
+    fn dao_def(&self, xst: &XST) -> Result<String> {
+        let (mut pk_name, mut pk_type, mut pk_col) =
+            ("".to_string(), "".to_string(), "".to_string());
+        for (_, field) in &xst.fields {
+            let tag = field.get_tag("gorm");
+            if let Some(desc) = tag {
+                if desc.txt.contains("primaryKey") {
+                    pk_name = field.name.clone();
+                    pk_type = field.xtype.clone();
+                    pk_col = desc.name;
+                }
+            }
+        }
+        let dao_name = format!("{}Dao", xst.name.trim_end_matches("Do"));
+        let entity_list_name = format!("{}List", xst.name);
+        let table_name = format!("do.TableName{}", xst.name);
+        let dao = dao_def::Dao {
+            entity_name: xst.name.clone(),
+            dao_name,
+            entity_list_name,
+            table_name,
+            pk_name,
+            pk_type,
+            pk_col,
+        };
+        let buf = dao.execute()?;
+        Ok(buf)
     }
     fn do_def(&self, xst: XST) -> Result<(String, String)> {
         let mut gdo = do_def::Do {
@@ -269,7 +349,7 @@ impl MimanGenerator {
         let buf2 = do_conv.execute()?;
         Ok((buf, buf2))
     }
-    fn type_def(&self, pkg: &str, xst: XST) -> Result<String> {
+    fn type_def(&self, pkg: &str, xst: &XST) -> Result<String> {
         let mut tpl = type_def::EntityTypeMap {
             project_name: pkg.to_string(),
             entity_name: xst.name.clone(),
@@ -279,7 +359,7 @@ impl MimanGenerator {
             creator_name: "".to_string(),
         };
         let mut field_list = Vec::new();
-        for (_, field) in xst.fields {
+        for (_, field) in &xst.fields {
             field_list.push(field);
         }
         field_list.sort_by(|a, b| a.idx.cmp(&b.idx));
