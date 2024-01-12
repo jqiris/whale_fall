@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::{borrow::Borrow, collections::HashMap, rc::Rc};
 
 use gosyn::ast::{self, *};
 use regex::Regex;
@@ -398,6 +398,13 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
     (fields, child)
 }
 
+pub fn go_merge_comment(docs: Vec<Rc<Comment>>) -> String {
+    docs.iter()
+        .map(|comment| comment.text.clone())
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
 impl From<ast::File> for MetaGo {
     fn from(ast_file: ast::File) -> Self {
         let mut meta_go = MetaGo {
@@ -419,6 +426,7 @@ impl From<ast::File> for MetaGo {
         for decl in ast_file.decl {
             match decl {
                 ast::Declaration::Function(x) => {
+                    let comment = go_merge_comment(x.docs);
                     if let Some(recv) = x.recv {
                         let (mut bind_name, mut impl_name) = ("".to_string(), "impl".to_string());
                         for field in recv.list {
@@ -433,6 +441,7 @@ impl From<ast::File> for MetaGo {
                             name: x.name.name.clone(),
                             params,
                             results,
+                            comment,
                             ..Default::default()
                         };
                         if !meta_go.bind_func_maps.contains_key(&bind_name) {
@@ -446,12 +455,25 @@ impl From<ast::File> for MetaGo {
                             .unwrap()
                             .insert(mtd.name.clone(), mtd);
                     } else {
+                        let (params, results) = go_func_args(&x.typ);
+                        let mtd = XMethod {
+                            name: x.name.name.clone(),
+                            params,
+                            results,
+                            comment,
+                            ..Default::default()
+                        };
+                        meta_go.func_list.insert(mtd.name.clone(), mtd.clone());
+                        if x.name.name.starts_with("New") {
+                            let func_name = x.name.name.strip_prefix("New").unwrap();
+                            meta_go.new_func_list.insert(func_name.to_string(), mtd);
+                        }
                     }
                 }
                 ast::Declaration::Type(x) => {
-                    let (mut used, mut impl_inf, mut gi_name, mut gi) =
-                        (true, "".to_string(), "".to_string(), false);
                     for spec in x.specs {
+                        let (mut used, mut impl_inf, mut gi_name, mut gi) =
+                            (true, "".to_string(), "".to_string(), false);
                         if spec.docs.len() > 0 {
                             for comment in spec.docs {
                                 if comment.text.contains("@IGNORE") {
