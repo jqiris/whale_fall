@@ -5,10 +5,7 @@ use crate::{
     common::{
         file::{path_join, path_parent, rel_path},
         go::{XField, XType, XST},
-        str::{
-            find_string_sub_match, first_upper_index, is_first_uppercase, parse_field_tag_map,
-            search_index, to_lower_first, to_snake_case, to_upper_first,
-        },
+        str::*,
     },
     core::{meta::*, traits::IGenerator},
     tpls::miman::{
