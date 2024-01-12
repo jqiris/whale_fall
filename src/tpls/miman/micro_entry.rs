@@ -82,7 +82,7 @@ pub struct MicroEntry {
     pub app_pkg_path: String,
     pub fun_list: Vec<MicroFunItem>,
 }
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct MicroFunItem {
     pub service: String,
     pub method: String,

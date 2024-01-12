@@ -1,5 +1,5 @@
 use core::fmt;
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::read_to_string};
 
 use crate::{
     common::{
@@ -11,7 +11,7 @@ use crate::{
         },
     },
     core::{meta::*, traits::IGenerator},
-    tpls::miman::{dao_def, do_def, gi_def, header, micro_entry, repo_def, type_def},
+    tpls::miman::{dao_def, do_def, gi_def, header, micro_entry, micro_types, repo_def, type_def},
 };
 use anyhow::Result;
 use regex::Regex;
@@ -97,7 +97,7 @@ impl MimanGenerator {
                     app_name: data.name.clone(),
                     app_name_uf: to_upper_first(&data.name),
                     app_pkg_path: pkg_path,
-                    fun_list: items,
+                    fun_list: items.clone(),
                 };
                 let (bufe, bufs) = (
                     micro_entry.execute(micro_entry::MICRO_ENTRY_TPL)?,
@@ -118,11 +118,81 @@ impl MimanGenerator {
                         content: bufs,
                     },
                 ]);
+                if let Ok(mut gen_list) = self.micro_func_io(root, pkg, data, &items) {
+                    list.append(&mut gen_list);
+                }
             }
         }
         Ok(list)
     }
-
+    fn micro_func_io(
+        &self,
+        root: &str,
+        pkg: &str,
+        data: &MetaNode,
+        items: &Vec<micro_entry::MicroFunItem>,
+    ) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let rel_path = rel_path(root, &data.path);
+        let pkg_path = format!("{}/{}", pkg, rel_path);
+        let type_dir = format!("types_{}", data.name);
+        match data.find_by_name(&type_dir) {
+            Some(dir) => match dir.find_by_name("types.go") {
+                Some(file) => {
+                    let xst_maps = dir.go_struct_maps();
+                    let _buf = read_to_string(file.path)?;
+                    let mut tpl = micro_types::MicroTypesAppend {
+                        body: _buf,
+                        fun_list: Vec::new(),
+                    };
+                    for it in items {
+                        if let None = xst_maps.get(&it.req_name) {
+                            tpl.fun_list.push(it.clone());
+                        }
+                    }
+                    if tpl.fun_list.len() > 0 {
+                        list.push(GenerateData {
+                            path: path_join(&[&data.path, &type_dir, "types.go"]),
+                            gen_type: self.generate_type(),
+                            out_type: OutputType::OutputTypeGo,
+                            content: tpl.execute()?,
+                        });
+                    }
+                }
+                None => {
+                    let tpl = micro_types::MicroTypes {
+                        app_name: data.name.clone(),
+                        app_pkg_path: pkg_path,
+                        fun_list: items.clone(),
+                    };
+                    if tpl.fun_list.len() > 0 {
+                        list.push(GenerateData {
+                            path: path_join(&[&data.path, &type_dir, "types.go"]),
+                            gen_type: self.generate_type(),
+                            out_type: OutputType::OutputTypeGo,
+                            content: tpl.execute()?,
+                        });
+                    }
+                }
+            },
+            None => {
+                let tpl = micro_types::MicroTypes {
+                    app_name: data.name.clone(),
+                    app_pkg_path: pkg_path,
+                    fun_list: items.clone(),
+                };
+                if tpl.fun_list.len() > 0 {
+                    list.push(GenerateData {
+                        path: path_join(&[&data.path, &type_dir, "types.go"]),
+                        gen_type: self.generate_type(),
+                        out_type: OutputType::OutputTypeGo,
+                        content: tpl.execute()?,
+                    });
+                }
+            }
+        }
+        Ok(list)
+    }
     fn micro_entry_doc_parse(&self, doc: &str) -> Vec<micro_entry::MicroFunItem> {
         let mut list = Vec::new();
         let micro_fun_exp = Regex::new(r"(\w+)\s+(.+)\s+\[([\w|.]+)]").unwrap();

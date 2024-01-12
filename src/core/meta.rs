@@ -91,6 +91,17 @@ impl MetaNode {
         list.sort_by(|a, b| a.name.cmp(&b.name));
         list
     }
+    pub fn go_struct_maps(&self) -> HashMap<String, XST> {
+        let mut maps = HashMap::new();
+        if let Some(data) = &self.data {
+            if let MetaData::Go(go) = data {
+                for (k, v) in go.st_list.iter() {
+                    maps.insert(k.clone(), v.clone());
+                }
+            }
+        }
+        maps
+    }
     pub fn go_func_maps(&self) -> HashMap<String, XMethod> {
         let mut maps = HashMap::new();
         if let Some(data) = &self.data {
