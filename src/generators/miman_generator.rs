@@ -9,8 +9,8 @@ use crate::{
     },
     core::{meta::*, traits::IGenerator},
     tpls::miman::{
-        dao_def, do_def, gi_def, header, micro_entry, micro_service, micro_types, repo_def,
-        type_def,
+        dao_def, do_def, gi_def, header, micro_entry, micro_provider, micro_service, micro_types,
+        repo_def, type_def,
     },
 };
 use anyhow::Result;
@@ -65,11 +65,27 @@ impl IGenerator for MimanGenerator {
                 let mut do_next_list = self.gen_do_next(root, pkg, &ido)?;
                 list.append(&mut do_next_list);
             }
+            let mut app_provider = Vec::new();
             //micro func
             let apps = micro.get_dir_childs();
             for app in apps {
                 let mut func_list = self.gen_micro_func(root, pkg, &app)?;
                 list.append(&mut func_list);
+                if func_list.len() > 0 {
+                    app_provider.push(to_upper_first(&app.name));
+                }
+            }
+            //micro provider
+            if app_provider.len() > 0 {
+                let tpl = micro_provider::MicroProvider {
+                    micro_list: app_provider,
+                };
+                list.push(GenerateData {
+                    path: path_join(&[root, "provider", "provider_gen.go"]),
+                    gen_type: self.generate_type(),
+                    out_type: OutputType::OutputTypeGo,
+                    content: tpl.execute()?,
+                });
             }
         }
         //gi

@@ -47,7 +47,7 @@ impl MicroServiceFunc {
 }
 
 pub const MICRO_SERVICE_FUNC_APPEND_TPL: &str = r#"
-{{body}}
+{{{body}}}
 {{#each fun_list}}
 func (s *{{service}}){{method}}(ctx context.Context, input *types_{{../app_name}}.{{req_name}}) (*types_{{../app_name}}.{{resp_name}}, error) {
 	var (
