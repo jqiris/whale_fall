@@ -11,7 +11,10 @@ use crate::{
         },
     },
     core::{meta::*, traits::IGenerator},
-    tpls::miman::{dao_def, do_def, gi_def, header, micro_entry, micro_types, repo_def, type_def},
+    tpls::miman::{
+        dao_def, do_def, gi_def, header, micro_entry, micro_service, micro_types, repo_def,
+        type_def,
+    },
 };
 use anyhow::Result;
 use regex::Regex;
@@ -118,8 +121,92 @@ impl MimanGenerator {
                         content: bufs,
                     },
                 ]);
-                if let Ok(mut gen_list) = self.micro_func_io(root, pkg, data, &items) {
-                    list.append(&mut gen_list);
+                let mut func_list = self.micro_func_io(root, pkg, data, &items)?;
+                list.append(&mut func_list);
+                let mut service_list = self.micro_service(root, pkg, data, &items)?;
+                list.append(&mut service_list);
+            }
+        }
+        Ok(list)
+    }
+    fn micro_service(
+        &self,
+        root: &str,
+        pkg: &str,
+        data: &MetaNode,
+        items: &Vec<micro_entry::MicroFunItem>,
+    ) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let rel_path = rel_path(root, &data.path);
+        let pkg_path = format!("{}/{}", pkg, rel_path);
+        let mut items_map: HashMap<String, Vec<micro_entry::MicroFunItem>> = HashMap::new();
+        for item in items {
+            if !items_map.contains_key(&item.service) {
+                items_map.insert(item.service.clone(), Vec::new());
+            }
+            items_map.get_mut(&item.service).unwrap().push(item.clone());
+        }
+        let service_dir = data.find_by_name("service");
+        for (service, func_items) in items_map {
+            let gen_name = format!("{}.go", service.to_lowercase());
+            match &service_dir {
+                Some(dir) => match dir.find_by_name(&gen_name) {
+                    Some(file) => {
+                        let xst_maps = dir.go_struct_maps();
+                        let _buf = read_to_string(file.path)?;
+                        let mut tpl = micro_service::MicroServiceAppend {
+                            body: _buf,
+                            fun_list: Vec::new(),
+                            app_name: data.name.clone(),
+                        };
+                        if let Some(xst) = xst_maps.get(&service) {
+                            for it in &func_items {
+                                if let None = xst.methods.get(&it.method) {
+                                    tpl.fun_list.push(it.clone());
+                                }
+                            }
+                        }
+                        if tpl.fun_list.len() > 0 {
+                            list.push(GenerateData {
+                                path: path_join(&[&data.path, "service", &gen_name]),
+                                gen_type: self.generate_type(),
+                                out_type: OutputType::OutputTypeGo,
+                                content: tpl.execute()?,
+                            });
+                        }
+                    }
+                    None => {
+                        let tpl = micro_service::MicroServiceFunc {
+                            app_name: data.name.clone(),
+                            app_pkg_name: pkg_path.clone(),
+                            service,
+                            fun_list: func_items,
+                        };
+                        if tpl.fun_list.len() > 0 {
+                            list.push(GenerateData {
+                                path: path_join(&[&data.path, "service", &gen_name]),
+                                gen_type: self.generate_type(),
+                                out_type: OutputType::OutputTypeGo,
+                                content: tpl.execute()?,
+                            });
+                        }
+                    }
+                },
+                None => {
+                    let tpl = micro_service::MicroServiceFunc {
+                        app_name: data.name.clone(),
+                        app_pkg_name: pkg_path.clone(),
+                        service,
+                        fun_list: func_items,
+                    };
+                    if tpl.fun_list.len() > 0 {
+                        list.push(GenerateData {
+                            path: path_join(&[&data.path, "service", &gen_name]),
+                            gen_type: self.generate_type(),
+                            out_type: OutputType::OutputTypeGo,
+                            content: tpl.execute()?,
+                        });
+                    }
                 }
             }
         }

@@ -3,6 +3,7 @@ pub mod do_def;
 pub mod gi_def;
 pub mod header;
 pub mod micro_entry;
+pub mod micro_service;
 pub mod micro_types;
 pub mod repo_def;
 #[cfg(test)]
