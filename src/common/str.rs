@@ -70,3 +70,18 @@ pub fn to_snake_case(str: &str) -> String {
     }
     result
 }
+
+pub fn in_slice(slices: &[&str], name: &str) -> bool {
+    slices.iter().any(|&x| x == name)
+}
+
+pub fn to_lower_first(str: &str) -> String {
+    let mut result = String::new();
+    let mut chars = str.chars();
+    if let Some(first_char) = chars.next() {
+        let lower_first_char = first_char.to_lowercase().to_string();
+        let rest_of_str = chars.collect::<String>();
+        result = lower_first_char + &rest_of_str;
+    }
+    result
+}

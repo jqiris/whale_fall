@@ -6,11 +6,12 @@ use crate::{
         file::{path_join, path_parent, rel_path},
         go::{XField, XType, XST},
         str::{
-            first_upper_index, is_first_uppercase, parse_field_tag_map, search_index, to_snake_case,
+            first_upper_index, is_first_uppercase, parse_field_tag_map, search_index,
+            to_lower_first, to_snake_case,
         },
     },
     core::{meta::*, traits::IGenerator},
-    tpls::miman::{dao_def, do_def, header, repo_def, type_def},
+    tpls::miman::{dao_def, do_def, gi_def, header, repo_def, type_def},
 };
 use anyhow::Result;
 pub struct MimanGenerator {}
@@ -64,11 +65,46 @@ impl IGenerator for MimanGenerator {
                 list.append(&mut do_next_list);
             }
         }
+        //gi
+        if let Some(gi_list) = data.lists.get("gi") {
+            for gi in gi_list {
+                list.push(self.gen_gi(&gi)?);
+            }
+        }
         Ok(list)
     }
 }
 
 impl MimanGenerator {
+    fn gen_gi(&self, data: &MetaNode) -> Result<GenerateData> {
+        let xst_list = data.go_struct_list();
+        let new_func_map = data.go_new_func_map();
+        let mut gdi = gi_def::Gi {
+            pkg: data.name.clone(),
+            list: Vec::new(),
+        };
+        for xst in xst_list {
+            if xst.gi {
+                let mut it = gi_def::GItem {
+                    name: xst.name.clone(),
+                    name_val: to_lower_first(&xst.name),
+                    new_returns_len: 0,
+                };
+                if let Some(nmth) = new_func_map.get(&xst.name) {
+                    it.new_returns_len = nmth.results.len();
+                }
+                gdi.list.push(it);
+            }
+        }
+        let buf = gdi.execute()?;
+        let gen_data = GenerateData {
+            path: path_join(&[&data.path, "gi_gen.go"]),
+            gen_type: self.generate_type(),
+            out_type: OutputType::OutputTypeGo,
+            content: buf,
+        };
+        Ok(gen_data)
+    }
     fn gen_do_next(&self, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
         let path_parent = path_parent(&data.path);
         let rel_path = rel_path(root, &path_parent);

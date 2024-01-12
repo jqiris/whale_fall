@@ -451,27 +451,27 @@ impl From<ast::File> for MetaGo {
                 ast::Declaration::Type(x) => {
                     let (mut used, mut impl_inf, mut gi_name, mut gi) =
                         (true, "".to_string(), "".to_string(), false);
-                    if x.docs.len() > 0 {
-                        for comment in x.docs {
-                            if comment.text.contains("@IGNORE") {
-                                used = false;
-                            }
-                            if comment.text.contains("@IMPL[") {
-                                let rs = find_string_sub_match(&re_impl, &comment.text);
-                                if rs.len() > 1 {
-                                    impl_inf = rs[1].clone();
+                    for spec in x.specs {
+                        if spec.docs.len() > 0 {
+                            for comment in spec.docs {
+                                if comment.text.contains("@IGNORE") {
+                                    used = false;
                                 }
-                            }
-                            if comment.text.contains("@GI") {
-                                let rs = find_string_sub_match(&re_di, &comment.text);
-                                if rs.len() > 1 {
-                                    gi_name = rs[1].clone();
+                                if comment.text.contains("@IMPL[") {
+                                    let rs = find_string_sub_match(&re_impl, &comment.text);
+                                    if rs.len() > 1 {
+                                        impl_inf = rs[1].clone();
+                                    }
+                                }
+                                if comment.text.contains("@GI") {
                                     gi = true;
+                                    let rs = find_string_sub_match(&re_di, &comment.text);
+                                    if rs.len() > 1 {
+                                        gi_name = rs[1].clone();
+                                    }
                                 }
                             }
                         }
-                    }
-                    for spec in x.specs {
                         let name = spec.name.name;
                         match spec.typ {
                             ast::Expression::TypeStruct(xt) => {

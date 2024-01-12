@@ -23,6 +23,10 @@ impl IProcesser for MimanProcesser {
         if let Some(data) = micro {
             result.maps.insert("micro".to_string(), data);
         }
+
+        let excludes = vec!["cmd", "config", "entity", "jobs", "scripts"];
+        let gi_list = meta.find_gi_list(&excludes);
+        result.lists.insert("gi".to_string(), gi_list);
         Ok(result)
     }
 

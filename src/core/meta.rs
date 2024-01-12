@@ -1,4 +1,7 @@
-use crate::common::go::{MetaGo, XST};
+use crate::common::{
+    go::{MetaGo, XMethod, XST},
+    str::in_slice,
+};
 use std::collections::HashMap;
 
 pub enum ParserType {
@@ -39,6 +42,35 @@ impl MetaNode {
         }
         list
     }
+    pub fn find_gi_list(&self, excludes: &[&str]) -> Vec<MetaNode> {
+        let mut list = Vec::new();
+        if !self.is_dir {
+            return list;
+        }
+        if in_slice(excludes, &self.name) {
+            return list;
+        }
+        let xst_list = self.go_struct_list();
+        for xst in xst_list.iter() {
+            if xst.gi {
+                list.push(self.clone());
+                break;
+            }
+        }
+        for child in self.childs.iter() {
+            if !child.is_dir {
+                continue;
+            }
+            if in_slice(excludes, &child.name) {
+                continue;
+            }
+            let mut child_list = child.find_gi_list(excludes);
+            if child_list.len() > 0 {
+                list.append(&mut child_list);
+            }
+        }
+        list
+    }
 
     pub fn go_struct_list(&self) -> Vec<XST> {
         let mut list = Vec::new();
@@ -49,6 +81,18 @@ impl MetaNode {
         }
         list.sort_by(|a, b| a.name.cmp(&b.name));
         list
+    }
+
+    pub fn go_new_func_map(&self) -> HashMap<String, XMethod> {
+        let mut maps = HashMap::new();
+        if let Some(data) = &self.data {
+            if let MetaData::Go(go) = data {
+                for (k, v) in go.new_func_list.iter() {
+                    maps.insert(k.clone(), v.clone());
+                }
+            }
+        }
+        maps
     }
 }
 
