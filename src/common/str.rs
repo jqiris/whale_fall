@@ -85,3 +85,14 @@ pub fn to_lower_first(str: &str) -> String {
     }
     result
 }
+
+pub fn to_upper_first(str: &str) -> String {
+    let mut result = String::new();
+    let mut chars = str.chars();
+    if let Some(first_char) = chars.next() {
+        let lower_first_char = first_char.to_uppercase().to_string();
+        let rest_of_str = chars.collect::<String>();
+        result = lower_first_char + &rest_of_str;
+    }
+    result
+}

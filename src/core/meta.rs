@@ -21,6 +21,15 @@ pub struct MetaNode {
     pub data: Option<MetaData>, //数据
 }
 impl MetaNode {
+    pub fn get_dir_childs(&self) -> Vec<MetaNode> {
+        let mut list = Vec::new();
+        for child in self.childs.iter() {
+            if child.is_dir {
+                list.push(child.clone());
+            }
+        }
+        list
+    }
     pub fn find_by_name(&self, name: &str) -> Option<MetaNode> {
         if self.name == name {
             return Some(self.clone());
@@ -82,8 +91,18 @@ impl MetaNode {
         list.sort_by(|a, b| a.name.cmp(&b.name));
         list
     }
-
-    pub fn go_new_func_map(&self) -> HashMap<String, XMethod> {
+    pub fn go_func_maps(&self) -> HashMap<String, XMethod> {
+        let mut maps = HashMap::new();
+        if let Some(data) = &self.data {
+            if let MetaData::Go(go) = data {
+                for (k, v) in go.func_list.iter() {
+                    maps.insert(k.clone(), v.clone());
+                }
+            }
+        }
+        maps
+    }
+    pub fn go_new_func_maps(&self) -> HashMap<String, XMethod> {
         let mut maps = HashMap::new();
         if let Some(data) = &self.data {
             if let MetaData::Go(go) = data {

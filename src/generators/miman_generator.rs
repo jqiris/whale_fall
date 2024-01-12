@@ -6,14 +6,15 @@ use crate::{
         file::{path_join, path_parent, rel_path},
         go::{XField, XType, XST},
         str::{
-            first_upper_index, is_first_uppercase, parse_field_tag_map, search_index,
-            to_lower_first, to_snake_case,
+            find_string_sub_match, first_upper_index, is_first_uppercase, parse_field_tag_map,
+            search_index, to_lower_first, to_snake_case, to_upper_first,
         },
     },
     core::{meta::*, traits::IGenerator},
-    tpls::miman::{dao_def, do_def, gi_def, header, repo_def, type_def},
+    tpls::miman::{dao_def, do_def, gi_def, header, micro_entry, repo_def, type_def},
 };
 use anyhow::Result;
+use regex::Regex;
 pub struct MimanGenerator {}
 
 impl fmt::Display for MimanGenerator {
@@ -64,6 +65,12 @@ impl IGenerator for MimanGenerator {
                 let mut do_next_list = self.gen_do_next(root, pkg, &ido)?;
                 list.append(&mut do_next_list);
             }
+            //micro func
+            let apps = micro.get_dir_childs();
+            for app in apps {
+                let mut func_list = self.gen_micro_func(root, pkg, &app)?;
+                list.append(&mut func_list);
+            }
         }
         //gi
         if let Some(gi_list) = data.lists.get("gi") {
@@ -76,9 +83,79 @@ impl IGenerator for MimanGenerator {
 }
 
 impl MimanGenerator {
+    fn gen_micro_func(&self, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let rel_path = rel_path(root, &data.path);
+        let pkg_path = format!("{}/{}", pkg, rel_path);
+        let entry = data.find_by_name("entry.go");
+        if let Some(ent) = entry {
+            let func_maps = ent.go_func_maps();
+            if let Some(mt) = func_maps.get("_gen") {
+                let items = self.micro_entry_doc_parse(&mt.comment);
+                let micro_entry = micro_entry::MicroEntry {
+                    project: pkg.to_string(),
+                    app_name: data.name.clone(),
+                    app_name_uf: to_upper_first(&data.name),
+                    app_pkg_path: pkg_path,
+                    fun_list: items,
+                };
+                let (bufe, bufs) = (
+                    micro_entry.execute(micro_entry::MICRO_ENTRY_TPL)?,
+                    micro_entry.execute(micro_entry::MICRO_SERVICE_TPL)?,
+                );
+                let pname = data.name.clone() + "_gen.go";
+                list.append(&mut vec![
+                    GenerateData {
+                        path: path_join(&[&root, "provider", &pname]),
+                        gen_type: self.generate_type(),
+                        out_type: OutputType::OutputTypeGo,
+                        content: bufe,
+                    },
+                    GenerateData {
+                        path: path_join(&[&data.path, "service_gen.go"]),
+                        gen_type: self.generate_type(),
+                        out_type: OutputType::OutputTypeGo,
+                        content: bufs,
+                    },
+                ]);
+            }
+        }
+        Ok(list)
+    }
+
+    fn micro_entry_doc_parse(&self, doc: &str) -> Vec<micro_entry::MicroFunItem> {
+        let mut list = Vec::new();
+        let micro_fun_exp = Regex::new(r"(\w+)\s+(.+)\s+\[([\w|.]+)]").unwrap();
+        let lines = doc.split("\n");
+        for line in lines {
+            let r = find_string_sub_match(&micro_fun_exp, line);
+            if r.len() == 4 {
+                let services: Vec<&str> = r[3].split(".").collect();
+                let (mut service, mut method) = ("".to_string(), "".to_string());
+                if services.len() > 0 {
+                    service = services[0].to_string();
+                }
+                if services.len() > 1 {
+                    method = services[1].to_string();
+                }
+                let func_name = r.get(1).unwrap().to_string();
+                let fun_mark = r.get(2).unwrap().to_string();
+                let item = micro_entry::MicroFunItem {
+                    service,
+                    method,
+                    fun_name: func_name.clone(),
+                    fun_mark,
+                    req_name: format!("{}Req", func_name),
+                    resp_name: format!("{}Resp", func_name),
+                };
+                list.push(item);
+            }
+        }
+        list
+    }
     fn gen_gi(&self, data: &MetaNode) -> Result<GenerateData> {
         let xst_list = data.go_struct_list();
-        let new_func_map = data.go_new_func_map();
+        let new_func_map = data.go_new_func_maps();
         let mut gdi = gi_def::Gi {
             pkg: data.name.clone(),
             list: Vec::new(),
