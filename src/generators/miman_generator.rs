@@ -1,9 +1,9 @@
 use core::fmt;
-use std::{collections::HashMap, fs::read_to_string};
+use std::{collections::HashMap, fs::read_to_string, path::Path};
 
 use crate::{
     common::{
-        file::{path_join, path_parent, rel_path},
+        file::{path_join, path_name, path_parent, rel_path},
         go::{XField, XType, XST},
         str::*,
     },
@@ -30,24 +30,7 @@ impl IGenerator for MimanGenerator {
 
     fn generate(&self, root: &str, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
         let mut list = Vec::new();
-        //business
-        if let Some(buiness) = data.maps.get("business") {
-            //entity list
-            let entity_list = buiness.find_list_by_name("entity");
-            for entity in entity_list {
-                list.push(self.gen_entity(pkg, &entity)?);
-                let mut do_list = self.gen_do(root, pkg, &entity)?;
-                list.append(&mut do_list);
-                let mut repo_list = self.gen_repos(root, pkg, &entity)?;
-                list.append(&mut repo_list);
-            }
-            //do list
-            let do_list = buiness.find_list_by_name("do");
-            for ido in do_list {
-                let mut do_next_list = self.gen_do_next(root, pkg, &ido)?;
-                list.append(&mut do_next_list);
-            }
-        }
+        let mut micro_apps = Vec::new();
         //micro
         if let Some(micro) = data.maps.get("micro") {
             //entity list
@@ -67,12 +50,12 @@ impl IGenerator for MimanGenerator {
             }
             let mut app_provider = Vec::new();
             //micro func
-            let apps = micro.get_dir_childs();
-            for app in apps {
-                let (need_provide, mut func_list) = self.gen_micro_func(root, pkg, &app)?;
+            micro_apps = micro.get_dir_childs();
+            for micro_app in &micro_apps {
+                let (need_provide, mut func_list) = self.gen_micro_func(root, pkg, &micro_app)?;
                 list.append(&mut func_list);
                 if need_provide {
-                    app_provider.push(to_upper_first(&app.name));
+                    app_provider.push(to_upper_first(&micro_app.name));
                 }
             }
             //micro provider
@@ -88,6 +71,33 @@ impl IGenerator for MimanGenerator {
                 });
             }
         }
+        //business
+        if let Some(buiness) = data.maps.get("business") {
+            //entity list
+            let entity_list = buiness.find_list_by_name("entity");
+            for entity in entity_list {
+                list.push(self.gen_entity(pkg, &entity)?);
+                let mut do_list = self.gen_do(root, pkg, &entity)?;
+                list.append(&mut do_list);
+                let mut repo_list = self.gen_repos(root, pkg, &entity)?;
+                list.append(&mut repo_list);
+            }
+            //do list
+            let do_list = buiness.find_list_by_name("do");
+            for ido in do_list {
+                let mut do_next_list = self.gen_do_next(root, pkg, &ido)?;
+                list.append(&mut do_next_list);
+            }
+            //app types list
+            let cmds = buiness.find_list_by_name("cmd");
+            for cmd in cmds {
+                let app_list = cmd.get_dir_childs();
+                for app in app_list {
+                    let mut app_types = self.gen_app_types(root, pkg, &app, &micro_apps)?;
+                    list.append(&mut app_types);
+                }
+            }
+        }
         //gi
         if let Some(gi_list) = data.lists.get("gi") {
             for gi in gi_list {
@@ -99,6 +109,60 @@ impl IGenerator for MimanGenerator {
 }
 
 impl MimanGenerator {
+    fn gen_app_types(
+        &self,
+        root: &str,
+        pkg: &str,
+        app: &MetaNode,
+        micro_apps: &Vec<MetaNode>,
+    ) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        //micro types
+        if let Some(main) = app.find_go_func("main") {
+            if main.comment.len() > 0 {
+                let use_micros = self.main_micro_parse(&main.comment);
+                if use_micros.len() > 0 {
+                    let mut use_mods = HashMap::new();
+                    for use_micro in use_micros {
+                        use_mods.insert(use_micro, true);
+                    }
+                    for micro_app in micro_apps.iter() {
+                        if !use_mods.contains_key(&micro_app.name) {
+                            continue;
+                        }
+                        if let Some(entity) = micro_app.find_by_name("entity") {
+                            let st_maps = entity.go_struct_maps();
+                            let mut xst_maps: HashMap<String, Vec<XST>> = HashMap::new();
+                            for (_, xst) in st_maps {
+                                if !xst_maps.contains_key(&xst.file) {
+                                    xst_maps.insert(xst.file.clone(), Vec::new());
+                                }
+                                xst_maps.get_mut(&xst.file).unwrap().push(xst);
+                            }
+                            let micro_dir = format!("micro_{}", micro_app.name);
+                            let mut exist_maps = HashMap::new();
+                            if let Some(types) = micro_app.find_by_name(&micro_dir) {
+                                exist_maps = types.go_struct_maps();
+                            }
+                            for (file, xst_list) in xst_maps {
+                                let fname = path_name(&Path::new(&file));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(list)
+    }
+    fn main_micro_parse(&self, doc: &str) -> Vec<String> {
+        let mut list: Vec<String> = Vec::new();
+        let micro_exp = Regex::new(r"@MICRO\\[([\\w|,]+)]").unwrap();
+        let r = find_string_sub_match(&micro_exp, doc);
+        if r.len() > 1 {
+            list = r[1].split(",").map(String::from).collect();
+        }
+        list
+    }
     fn gen_micro_func(
         &self,
         root: &str,

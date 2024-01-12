@@ -30,6 +30,14 @@ impl MetaNode {
         }
         list
     }
+    pub fn find_go_func(&self, name: &str) -> Option<XMethod> {
+        if let Some(data) = &self.data {
+            if let MetaData::Go(go) = data {
+                return go.func_list.get(name).cloned();
+            }
+        }
+        None
+    }
     pub fn find_by_name(&self, name: &str) -> Option<MetaNode> {
         if self.name == name {
             return Some(self.clone());
