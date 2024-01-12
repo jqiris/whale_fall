@@ -276,7 +276,75 @@ pub fn go_type_str(arg: &Expression) -> (String, XType) {
         Expression::TypeMap(x) => (go_map_type_str(x), XType::XTypeMap),
         Expression::TypeArray(x) => (go_slice_type_str(x), XType::XTypeSlice),
         Expression::TypeInterface(_) => ("interface{}".to_string(), XType::XTypeBasic),
-        _ => ("".to_string(), XType::XTypeBasic),
+        Expression::TypePointer(x) => go_type_str(&x.typ),
+        Expression::Call(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::Index(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::IndexList(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::Slice(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::FuncLit(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::Ellipsis(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::BasicLit(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::Range(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::Paren(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::TypeAssert(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::CompositeLit(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::List(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::Operation(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::TypeSlice(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::TypeFunction(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::TypeStruct(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
+        Expression::TypeChannel(_x) => {
+            // println!("{:?}", x);
+            ("".to_string(), XType::XTypeBasic)
+        }
     }
 }
 
@@ -407,6 +475,10 @@ pub fn go_merge_comment(docs: Vec<Rc<Comment>>) -> String {
 
 impl From<ast::File> for MetaGo {
     fn from(ast_file: ast::File) -> Self {
+        // let path_string = ast_file.path.to_string_lossy().to_string();
+        // if path_string.contains("service") {
+        //     println!("{}", path_string);
+        // }
         let mut meta_go = MetaGo {
             ast_file: Some(ast_file.clone()),
             inf_list: HashMap::new(),

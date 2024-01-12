@@ -69,9 +69,9 @@ impl IGenerator for MimanGenerator {
             //micro func
             let apps = micro.get_dir_childs();
             for app in apps {
-                let mut func_list = self.gen_micro_func(root, pkg, &app)?;
+                let (need_provide, mut func_list) = self.gen_micro_func(root, pkg, &app)?;
                 list.append(&mut func_list);
-                if func_list.len() > 0 {
+                if need_provide {
                     app_provider.push(to_upper_first(&app.name));
                 }
             }
@@ -99,7 +99,13 @@ impl IGenerator for MimanGenerator {
 }
 
 impl MimanGenerator {
-    fn gen_micro_func(&self, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
+    fn gen_micro_func(
+        &self,
+        root: &str,
+        pkg: &str,
+        data: &MetaNode,
+    ) -> Result<(bool, Vec<GenerateData>)> {
+        let mut need_provide = false;
         let mut list = Vec::new();
         let rel_path = rel_path(root, &data.path);
         let pkg_path = format!("{}/{}", pkg, rel_path);
@@ -108,6 +114,9 @@ impl MimanGenerator {
             let func_maps = ent.go_func_maps();
             if let Some(mt) = func_maps.get("_gen") {
                 let items = self.micro_entry_doc_parse(&mt.comment);
+                if items.len() > 0 {
+                    need_provide = true;
+                }
                 let micro_entry = micro_entry::MicroEntry {
                     project: pkg.to_string(),
                     app_name: data.name.clone(),
@@ -140,7 +149,7 @@ impl MimanGenerator {
                 list.append(&mut service_list);
             }
         }
-        Ok(list)
+        Ok((need_provide, list))
     }
     fn micro_service(
         &self,
