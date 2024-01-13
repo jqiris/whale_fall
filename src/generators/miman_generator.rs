@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{collections::HashMap, fs::read_to_string, path::Path};
+use std::{collections::HashMap, fs::read_to_string, path::Path, vec};
 
 use crate::{
     common::{
@@ -10,7 +10,7 @@ use crate::{
     core::{meta::*, traits::IGenerator},
     tpls::miman::{
         dao_def, do_def, gi_def, header, micro_entry, micro_provider, micro_service, micro_types,
-        repo_def, type_def,
+        repo_def, type_def, types,
     },
 };
 use anyhow::Result;
@@ -117,11 +117,15 @@ impl MimanGenerator {
         micro_apps: &Vec<MetaNode>,
     ) -> Result<Vec<GenerateData>> {
         let mut list = Vec::new();
+        let app_rel_path = rel_path(root, &app.path);
+        let app_pkg_path = format!("{}/{}", pkg, app_rel_path);
         //micro types
         if let Some(main) = app.find_go_func("main") {
             if main.comment.len() > 0 {
                 let use_micros = self.main_micro_parse(&main.comment);
                 if use_micros.len() > 0 {
+                    // 模块注册模式 显性控制需要引入的模块
+                    // 读取micro配置
                     let mut use_mods = HashMap::new();
                     for use_micro in use_micros {
                         use_mods.insert(use_micro, true);
@@ -130,6 +134,30 @@ impl MimanGenerator {
                         if !use_mods.contains_key(&micro_app.name) {
                             continue;
                         }
+                        let micro_package = format!("micro_{}", micro_app.name);
+                        let micro_rel_path = rel_path(root, &micro_app.path);
+                        let micro_pkg_path = format!("{}/{}", pkg, micro_rel_path);
+                        let header_conv = header::Header {
+                            package: "converter".to_string(),
+                            imports: vec![
+                                format!("{}/common/tools", pkg),
+                                format!("{}/common/core/log", pkg),
+                                format!("{}/common/tools/tool_time", pkg),
+                                format!("{}/entity", micro_pkg_path),
+                                format!(
+                                    "types \"{}/types/{}\"",
+                                    app_pkg_path,
+                                    micro_package.clone()
+                                ),
+                            ],
+                            allow_edit: false,
+                        };
+                        let header_micro = header::Header {
+                            package: micro_package.clone(),
+                            imports: vec!["time".to_string()],
+                            allow_edit: true,
+                        };
+                        let mut bufc = header_conv.execute()?;
                         if let Some(entity) = micro_app.find_by_name("entity") {
                             let st_maps = entity.go_struct_maps();
                             let mut xst_maps: HashMap<String, Vec<XST>> = HashMap::new();
@@ -139,20 +167,229 @@ impl MimanGenerator {
                                 }
                                 xst_maps.get_mut(&xst.file).unwrap().push(xst);
                             }
-                            let micro_dir = format!("micro_{}", micro_app.name);
                             let mut exist_maps = HashMap::new();
-                            if let Some(types) = micro_app.find_by_name(&micro_dir) {
+                            if let Some(types) = micro_app.find_by_name(&micro_package) {
                                 exist_maps = types.go_struct_maps();
                             }
                             for (file, xst_list) in xst_maps {
+                                let mut bufd = header_micro.execute()?;
                                 let fname = path_name(&Path::new(&file));
+                                for xst in xst_list {
+                                    let xst_default = &mut XST::default();
+                                    let old_xst =
+                                        exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
+                                    let name_mark =
+                                        format!("Micro{}", to_upper_first(&micro_app.name));
+                                    let (_b, _bc) =
+                                        self._types(&xst, old_xst, "json", &name_mark)?;
+                                    bufd += &_b;
+                                    bufc += &_bc;
+                                }
+                                list.push(GenerateData {
+                                    path: path_join(&[
+                                        &app.path,
+                                        "types",
+                                        &micro_package,
+                                        &format!("entity_{}", fname),
+                                    ]),
+                                    gen_type: GenerateType::GenerateTypeMiman,
+                                    out_type: OutputType::OutputTypeGo,
+                                    content: bufd,
+                                })
                             }
+                            list.push(GenerateData {
+                                path: path_join(&[
+                                    &app.path,
+                                    "converter",
+                                    &format!("{}_converter_gen.go", micro_package),
+                                ]),
+                                gen_type: GenerateType::GenerateTypeMiman,
+                                out_type: OutputType::OutputTypeGo,
+                                content: bufc,
+                            })
                         }
                     }
                 }
             }
         }
         Ok(list)
+    }
+    fn _types(
+        &self,
+        xst: &XST,
+        old_xst: &mut XST,
+        tag_name: &str,
+        name_mark: &str,
+    ) -> Result<(String, String)> {
+        let mut gio = types::IO {
+            name: xst.name.clone(),
+            fields: Vec::new(),
+        };
+        let mut field_list = Vec::new();
+        for (_, field) in &xst.fields {
+            field_list.push(field.clone());
+        }
+        field_list.sort_by(|a, b| a.idx.cmp(&b.idx));
+
+        for field in &mut field_list {
+            let tag_json = field.get_tag("json");
+            let tag_io = field.get_tag(tag_name);
+            let mut tags = String::new();
+
+            if tag_json.is_none() {
+                continue;
+            }
+            if let Some(tag_json) = &tag_json {
+                tags = format!("`json:\"{}\"`", tag_json.name);
+                if tag_json.name == "-" {
+                    tags = String::new();
+                }
+            }
+            if let Some(tag_io) = tag_io {
+                if tag_io.txt == "-" {
+                    continue;
+                }
+                if !tag_io.txt.is_empty() {
+                    tag_json.unwrap().name = tag_io.name.clone();
+                }
+            }
+
+            let mut type2 = String::new();
+            let mut type2_entity = false;
+
+            let mut ftype = field.xtype.clone();
+            match field.stype {
+                XType::XTypeStruct => {
+                    type2 = field.xtype.replace("*", "");
+                    if field.xtype.contains("time.Time") {
+                        field.stype = XType::XTypeTime;
+                        ftype = "string".to_string();
+                    }
+                }
+                XType::XTypeSlice => {
+                    type2 = field.xtype.replace("[]", "");
+                    type2 = type2.replace("*", "");
+                    if is_first_uppercase(&type2) {
+                        type2_entity = true;
+                    }
+                }
+                _ => {}
+            }
+
+            if let Some(old_field) = old_xst.fields.get(&field.name) {
+                let tag_json2 = old_field.get_tag("json");
+                if let Some(tag_json2) = tag_json2 {
+                    if tag_json2.name == "-" {
+                        gio.fields.push(types::IoField {
+                            name: field.name.clone(),
+                            type_: ftype.clone(),
+                            type2: type2.clone(),
+                            type2_entity,
+                            stype: field.stype.clone() as i32,
+                            tag: "`json:\"-\"`".to_string(),
+                            comment: field.comment.clone(),
+                            hidden: false,
+                        });
+                        continue;
+                    }
+                }
+            }
+
+            gio.fields.push(types::IoField {
+                name: field.name.clone(),
+                type_: ftype.clone(),
+                type2: type2.clone(),
+                type2_entity,
+                stype: field.stype.clone() as i32,
+                tag: tags,
+                comment: field.comment.clone(),
+                hidden: false,
+            });
+        }
+
+        if gio.fields.is_empty() {
+            return Ok(("".to_string(), "".to_string()));
+        }
+
+        let conv_buf = self._io_conv(&mut gio, name_mark)?;
+        // 自定义字段
+        for (_, field) in old_xst.fields.iter_mut() {
+            if !xst.fields.contains_key(&field.name) {
+                let tag_json = field.get_tag("json");
+                let tag_io = field.get_tag(tag_name);
+                let mut tags = String::new();
+
+                if tag_json.is_none() {
+                    continue;
+                }
+                if let Some(tag_json) = &tag_json {
+                    tags = format!("`json:\"{}\"`", tag_json.name);
+                    if tag_json.name == "-" {
+                        tags = String::new();
+                    }
+                }
+                if let Some(tag_io) = tag_io {
+                    if tag_io.txt == "-" {
+                        continue;
+                    }
+                    if !tag_io.txt.is_empty() {
+                        tag_json.unwrap().name = tag_io.name.clone();
+                    }
+                }
+
+                let mut type2 = String::new();
+                let mut type2_entity = false;
+
+                let mut ftype = field.xtype.clone();
+                match field.stype {
+                    XType::XTypeStruct => {
+                        type2 = field.xtype.replace("*", "");
+                        if field.xtype.contains("time.Time") {
+                            field.stype = XType::XTypeTime;
+                            ftype = "string".to_string();
+                        }
+                    }
+                    XType::XTypeSlice => {
+                        type2 = field.xtype.replace("[]", "");
+                        type2 = type2.replace("*", "");
+                        if is_first_uppercase(&type2) {
+                            type2_entity = true;
+                        }
+                    }
+                    _ => {}
+                }
+
+                gio.fields.push(types::IoField {
+                    name: field.name.clone(),
+                    type_: ftype,
+                    type2,
+                    type2_entity,
+                    stype: field.stype.clone() as i32,
+                    tag: tags,
+                    comment: field.comment.clone(),
+                    hidden: false,
+                });
+            }
+        }
+
+        let buf = gio.execute()?;
+        Ok((buf, conv_buf))
+    }
+
+    fn _io_conv(&self, gio: &mut types::IO, name_mark: &str) -> Result<String> {
+        for item in &mut gio.fields {
+            if item.name.is_empty() {
+                item.name = item.type2.clone();
+            }
+        }
+        let conv_gen = types::IoConv {
+            name: gio.name.clone(),
+            name_mark: name_mark.to_string(),
+            fields: gio.fields.clone(),
+            ..Default::default()
+        };
+        let buf = conv_gen.execute()?;
+        Ok(buf)
     }
     fn main_micro_parse(&self, doc: &str) -> Vec<String> {
         let mut list: Vec<String> = Vec::new();
@@ -436,7 +673,7 @@ impl MimanGenerator {
         };
         let mut buf_do = header_do.execute()?;
         let header_dao = header::Header {
-            package: pkg.to_string(),
+            package: "dao".to_string(),
             imports: vec![
                 "github.com/pkg/errors".to_string(),
                 "gorm.io/gorm".to_string(),

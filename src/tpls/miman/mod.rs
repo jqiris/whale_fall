@@ -10,3 +10,4 @@ pub mod repo_def;
 #[cfg(test)]
 mod tests;
 pub mod type_def;
+pub mod types;
