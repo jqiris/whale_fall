@@ -468,7 +468,11 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
 
 pub fn go_merge_comment(docs: Vec<Rc<Comment>>) -> String {
     docs.iter()
-        .map(|comment| comment.text.clone())
+        .map(|comment| {
+            let mut text = comment.text.clone().replace("//", "");
+            text = text.strip_prefix(" ").unwrap_or(&text).to_string();
+            text
+        })
         .collect::<Vec<String>>()
         .join("\n")
 }
@@ -476,7 +480,7 @@ pub fn go_merge_comment(docs: Vec<Rc<Comment>>) -> String {
 impl From<ast::File> for MetaGo {
     fn from(ast_file: ast::File) -> Self {
         // let path_string = ast_file.path.to_string_lossy().to_string();
-        // if path_string.contains("service") {
+        // if path_string.contains("routes.go") {
         //     println!("{}", path_string);
         // }
         let mut meta_go = MetaGo {

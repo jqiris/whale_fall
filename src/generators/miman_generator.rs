@@ -1,5 +1,10 @@
 use core::fmt;
-use std::{collections::HashMap, fs::read_to_string, path::Path, vec};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::read_to_string,
+    path::Path,
+    vec,
+};
 
 use crate::{
     common::{
@@ -9,11 +14,11 @@ use crate::{
     },
     core::{meta::*, traits::IGenerator},
     tpls::miman::{
-        dao_def, do_def, gi_def, header, micro_entry, micro_provider, micro_service, micro_types,
-        repo_def, type_def, types,
+        dao_def, do_def, docs, gi_def, handler, header, http_routes, http_types, micro_entry,
+        micro_provider, micro_service, micro_types, repo_def, type_def, types,
     },
 };
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use regex::Regex;
 pub struct MimanGenerator {}
 
@@ -88,15 +93,19 @@ impl IGenerator for MimanGenerator {
                 let mut do_next_list = self.gen_do_next(root, pkg, &ido)?;
                 list.append(&mut do_next_list);
             }
-            //app types list
+            //app list
             let apps = buiness.get_dir_childs();
             for app in apps {
                 if let Some(cmd) = app.find_by_name("cmd") {
                     let modules = cmd.get_dir_childs();
                     for module in modules {
+                        //app types
                         let mut app_types =
                             self.gen_app_types(root, pkg, &app, &module, &micro_apps)?;
                         list.append(&mut app_types);
+                        //app handlers
+                        let mut app_handlers = self.gen_app_handlers(root, pkg, &app, &module)?;
+                        list.append(&mut app_handlers);
                     }
                 }
             }
@@ -112,6 +121,456 @@ impl IGenerator for MimanGenerator {
 }
 
 impl MimanGenerator {
+    fn gen_app_handlers(
+        &self,
+        root: &str,
+        pkg: &str,
+        app: &MetaNode,
+        module: &MetaNode,
+    ) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let app_rel_path = rel_path(root, &app.path);
+        let app_pkg_path = format!("{}/{}", pkg, app_rel_path);
+        let app_name = app.name.clone();
+        let module_rel_path = rel_path(root, &module.path);
+        let module_pkg_path = format!("{}/{}", pkg, module_rel_path);
+        let module_name = module.name.clone();
+        if let Some(route) = module.find_by_name("route") {
+            if let Some(routes) = route.find_go_func("_gen") {
+                if routes.comment.len() > 0 {
+                    let groups = self.biz_entry_doc_parse(&module.name, &routes.comment, false);
+                    let ef = http_routes::HttpEntry {
+                        project: pkg.to_string(),
+                        app_name: app_name.clone(),
+                        app_name_uf: to_upper_first(&app_name),
+                        app_pkg_path,
+                        entry_name: module_name,
+                        entry_path: module.path.clone(),
+                        entry_pkg_path: module_pkg_path,
+                        groups,
+                        ..Default::default()
+                    };
+                    let buf = ef.execute(http_routes::HTTP_ROUTE_TPL)?;
+                    list.push(GenerateData {
+                        path: path_join(&[&module.path, "route", "routes_gen.go"]),
+                        gen_type: GenerateType::GenerateTypeMiman,
+                        out_type: OutputType::OutputTypeGo,
+                        content: buf,
+                    });
+                    let mut handler_list = self.gen_route_handler(module, &ef)?;
+                    list.append(&mut handler_list);
+                    let mut types_list = self.gen_route_types(module, &ef)?;
+                    list.append(&mut types_list);
+                    let mut docs_list = self.gen_route_docs(root, app, module, &ef)?;
+                    list.append(&mut docs_list);
+                }
+            }
+        }
+        Ok(list)
+    }
+
+    fn gen_route_docs(
+        &self,
+        root: &str,
+        app: &MetaNode,
+        module: &MetaNode,
+        ef: &http_routes::HttpEntry,
+    ) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let mut xst_maps = HashMap::new();
+        if let Some(types) = module.find_by_name("types") {
+            xst_maps = types.go_struct_maps();
+            for dir in types.get_dir_childs() {
+                let dir_maps = dir.go_struct_maps();
+                for (s, xst) in dir_maps {
+                    xst_maps.insert(format!("{}.{}", dir.name, s), xst);
+                }
+            }
+        }
+        for group in &ef.groups {
+            let group_uri_name = to_snake_case(&group.group).replace("_", "-");
+            let dir = path_join(&[
+                root,
+                "panel",
+                "docs",
+                &app.name,
+                &module.name,
+                &group_uri_name,
+            ]);
+            for fun in &group.fun_list {
+                if xst_maps.contains_key(&fun.req_name) {
+                    list.push(self.docs_item(&dir, fun, &xst_maps)?);
+                }
+            }
+        }
+        let filename = path_join(&[
+            root,
+            "panel",
+            "docs",
+            &app.name,
+            &module.name,
+            "_sidebar.md",
+        ]);
+        let _t = docs::DocsSidebar {
+            entry: ef.entry_name.clone(),
+            groups: ef.groups.clone(),
+        };
+        let buf = _t.execute()?;
+        list.push(GenerateData {
+            path: filename,
+            gen_type: GenerateType::GenerateTypeMiman,
+            out_type: OutputType::OutputTypeMd,
+            content: buf,
+        });
+        Ok(list)
+    }
+
+    pub fn docs_item(
+        &self,
+        dir: &str,
+        f: &http_routes::EntryFunItem,
+        struct_list: &HashMap<String, XST>,
+    ) -> Result<GenerateData> {
+        let uris = f.uri2.split("/").collect::<Vec<&str>>();
+        let filename = format!("{}/{}.md", dir, uris.last().unwrap_or(&""));
+        let req_xst = struct_list
+            .get(&f.req_name)
+            .unwrap_or_else(|| panic!("Missing request struct: {}", f.req_name));
+        let resp_xst = struct_list
+            .get(&f.resp_name)
+            .unwrap_or_else(|| panic!("Missing response struct: {}", f.resp_name));
+        let request = self.to_docs_item_fields(&req_xst.fields, struct_list, String::new());
+        let response = self.to_docs_item_fields(&resp_xst.fields, struct_list, String::new());
+        let mut _t = docs::DocsItem {
+            name: f.fun_mark.clone(),
+            route_path: f.uri.clone(),
+            request,
+            response,
+            exp_json: Vec::new(),
+        };
+        let body = self.get_json(&resp_xst.fields, struct_list);
+        _t.exp_json.push("```\n".to_string());
+        _t.exp_json.push(body);
+        _t.exp_json.push("\n```".to_string());
+        let buf = _t.execute()?;
+        Ok(GenerateData {
+            path: filename,
+            gen_type: GenerateType::GenerateTypeMiman,
+            out_type: OutputType::OutputTypeMd,
+            content: buf,
+        })
+    }
+    fn get_json(
+        &self,
+        fields: &HashMap<String, XField>,
+        struct_list: &HashMap<String, XST>,
+    ) -> String {
+        let mut list = Vec::new();
+        for (_, field) in fields {
+            if let Some(j) = field.get_tag("json") {
+                let line = format!("\"{}\":{}", j.name, self.get_json_val(field, struct_list));
+                list.push(line);
+            }
+        }
+        list.join("\n")
+    }
+    fn get_json_val(&self, field: &XField, struct_list: &HashMap<String, XST>) -> String {
+        match field.stype {
+            XType::XTypeStruct => {
+                let sk = field.xtype.trim_start_matches('*').to_string();
+                if let Some(v) = struct_list.get(&sk) {
+                    return self.get_json(&v.fields, struct_list);
+                }
+            }
+            XType::XTypeSlice => {
+                let sk = field.xtype.replace("*", "").replace("[]", "");
+                if let Some(v) = struct_list.get(&sk) {
+                    return self.get_json(&v.fields, struct_list);
+                } else {
+                    return self.get_zero_val(&field.xtype);
+                }
+            }
+            _ => {
+                return self.get_zero_val(&field.xtype);
+            }
+        }
+        "".to_string()
+    }
+
+    fn get_zero_val(&self, x_type: &str) -> String {
+        match x_type {
+            "bool" => "true".to_string(),
+            x if x.contains("int") => "0".to_string(),
+            x if x.contains("float") => "0.1".to_string(),
+            _ => "".to_string(),
+        }
+    }
+
+    pub fn to_docs_item_fields(
+        &self,
+        fields: &HashMap<String, XField>,
+        struct_list: &HashMap<String, XST>,
+        prefix: String,
+    ) -> Vec<docs::DocsItemField> {
+        let mut _fields = self.sort_fields(fields);
+        let mut request = Vec::new();
+        for field in _fields.iter_mut() {
+            let j = field.get_tag("json");
+            let mut name = String::new();
+            if let Some(j) = j {
+                name = prefix.clone() + &j.name.replace(",omitempty", "");
+            }
+            let mut _type = field.xtype.clone();
+            match field.stype {
+                XType::XTypeStruct => {
+                    let prefix = prefix.replace("[i].", "");
+                    _type = "object".to_string();
+                    request.push(docs::DocsItemField {
+                        name: name.clone(),
+                        type_: _type.clone(),
+                        must: "Y".to_string(),
+                        comment: field.comment.clone(),
+                    });
+                    let sk = field.xtype.trim_start_matches('*').to_string();
+                    if let Some(v) = struct_list.get(&sk) {
+                        let r = self.to_docs_item_fields(
+                            &v.fields,
+                            struct_list,
+                            prefix.clone() + "&emsp;&emsp;",
+                        );
+                        request.extend(r);
+                    }
+                }
+                XType::XTypeSlice => {
+                    let prefix = prefix.replace("[i].", "");
+                    _type = "array".to_string();
+                    request.push(docs::DocsItemField {
+                        name: name.clone(),
+                        type_: _type.clone(),
+                        must: "Y".to_string(),
+                        comment: field.comment.clone(),
+                    });
+                    let sk = field.xtype.replace("*", "").replace("[]", "");
+                    if let Some(v) = struct_list.get(&sk) {
+                        let r = self.to_docs_item_fields(
+                            &v.fields,
+                            struct_list,
+                            prefix.clone() + "&emsp;&emsp;[i].",
+                        );
+                        request.extend(r);
+                    }
+                }
+                _ => {
+                    request.push(docs::DocsItemField {
+                        name: name.clone(),
+                        type_: _type.clone(),
+                        must: "Y".to_string(),
+                        comment: field.comment.clone(),
+                    });
+                }
+            }
+        }
+        request
+    }
+    fn sort_fields(&self, fields: &HashMap<String, XField>) -> Vec<XField> {
+        let mut r = vec![XField::default(); fields.len()];
+        for field in fields.values() {
+            r[field.idx as usize] = field.clone();
+        }
+        r
+    }
+    fn gen_route_types(
+        &self,
+        module: &MetaNode,
+        ef: &http_routes::HttpEntry,
+    ) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let mut has_func_map = HashMap::new();
+        let mut has_file_map = HashMap::new();
+        if let Some(types) = module.find_by_name("types") {
+            has_func_map = types.go_func_maps();
+            for group in &ef.groups {
+                let group_type = format!("io_{}.go", group.group);
+                if let Some(file) = types.find_by_name(&group_type) {
+                    has_file_map.insert(group_type, read_to_string(file.path)?);
+                }
+            }
+        }
+        for group in &ef.groups {
+            let group_type = format!("{}.go", group.group);
+            if let Some(file) = has_file_map.get(&group_type) {
+                let mut _t = http_types::HandlerTypesAppend {
+                    body: file.to_string(),
+                    fun_list: Vec::new(),
+                };
+                for it in group.fun_list.iter() {
+                    if !has_func_map.contains_key(&it.req_name) {
+                        _t.fun_list.push(it.clone());
+                    }
+                }
+                let buf = _t.execute()?;
+                list.push(GenerateData {
+                    path: path_join(&[&module.path, "types", &group_type]),
+                    gen_type: GenerateType::GenerateTypeMiman,
+                    out_type: OutputType::OutputTypeGo,
+                    content: buf,
+                });
+            } else {
+                let _t = http_types::HandlerTypes {
+                    entry_path: ef.entry_pkg_path.clone(),
+                    entry: ef.entry_name.clone(),
+                    group: group.group.clone(),
+                    fun_list: group.fun_list.clone(),
+                };
+                let buf = _t.execute()?;
+                list.push(GenerateData {
+                    path: path_join(&[&module.path, "types", &group_type]),
+                    gen_type: GenerateType::GenerateTypeMiman,
+                    out_type: OutputType::OutputTypeGo,
+                    content: buf,
+                });
+            }
+        }
+        Ok(list)
+    }
+    fn gen_route_handler(
+        &self,
+        module: &MetaNode,
+        ef: &http_routes::HttpEntry,
+    ) -> Result<Vec<GenerateData>> {
+        let mut list = Vec::new();
+        let mut has_func_map = HashMap::new();
+        let mut has_file_map = HashMap::new();
+        if let Some(handler) = module.find_by_name("handler") {
+            has_func_map = handler.go_func_maps();
+            for group in &ef.groups {
+                let group_handler = format!("{}.go", group.group);
+                if let Some(file) = handler.find_by_name(&group_handler) {
+                    has_file_map.insert(group_handler, read_to_string(file.path)?);
+                }
+            }
+        }
+        for group in &ef.groups {
+            let group_handler = format!("{}.go", group.group);
+            if let Some(file) = has_file_map.get(&group_handler) {
+                let mut _t = handler::HandlerFuncAppend {
+                    body: file.to_string(),
+                    fun_list: Vec::new(),
+                };
+                for it in group.fun_list.iter() {
+                    if !has_func_map.contains_key(&it.fun_name) {
+                        _t.fun_list.push(it.clone());
+                    }
+                }
+                let buf = _t.execute()?;
+                list.push(GenerateData {
+                    path: path_join(&[&module.path, "handler", &group_handler]),
+                    gen_type: GenerateType::GenerateTypeMiman,
+                    out_type: OutputType::OutputTypeGo,
+                    content: buf,
+                });
+            } else {
+                let _t = handler::HandlerFunc {
+                    entry_path: ef.entry_pkg_path.clone(),
+                    entry: ef.entry_name.clone(),
+                    group: group.group.clone(),
+                    fun_list: group.fun_list.clone(),
+                };
+                let buf = _t.execute()?;
+                list.push(GenerateData {
+                    path: path_join(&[&module.path, "handler", &group_handler]),
+                    gen_type: GenerateType::GenerateTypeMiman,
+                    out_type: OutputType::OutputTypeGo,
+                    content: buf,
+                });
+            }
+        }
+        Ok(list)
+    }
+    pub fn biz_entry_doc_parse(
+        &self,
+        entry_name: &str,
+        doc: &str,
+        socket: bool,
+    ) -> Vec<http_routes::EntryGroup> {
+        let handler_func_exp: Regex = Regex::new(r"(.+)\s+\[(\w+)]").unwrap();
+        let handler_group_exp: Regex = Regex::new(r"#(\S+)\s+(\w+)").unwrap();
+        let handler_middle_exp: Regex = Regex::new(r"@M\(([\w|,|\(|\)]+)\)").unwrap();
+        let mut groups: Vec<http_routes::EntryGroup> = Vec::new();
+        let lines: Vec<&str> = doc.split('\n').collect();
+
+        for line in lines {
+            let rg = find_string_sub_match(&handler_group_exp, line);
+            if rg.len() == 3 {
+                let mut group = http_routes::EntryGroup {
+                    group: rg[2].to_string(),
+                    group_ufirst: to_upper_first(&rg[2]),
+                    group_name: rg[1].to_string(),
+                    fun_list: Vec::new(),
+                    gmiddlewares: Vec::new(),
+                };
+
+                if let Some(rm) = handler_middle_exp.captures(line) {
+                    group.gmiddlewares = rm[1].split(',').map(|s| s.to_string()).collect();
+                }
+                groups.push(group);
+                continue;
+            }
+
+            if groups.is_empty() {
+                continue;
+            }
+            let groups_len = groups.len();
+            let group = &mut groups[groups_len - 1];
+            let r = find_string_sub_match(&handler_func_exp, line);
+            if r.len() == 3 {
+                let method = to_upper_first(&r[2]);
+                let fun = to_upper_first(&group.group) + &method;
+                let m = to_snake_case(&method).replace("_", "-");
+                let group_uri_name = to_snake_case(&group.group).replace("_", "-");
+                let mut item = http_routes::EntryFunItem {
+                    fun_name: fun.clone(),
+                    method,
+                    fun_mark: r[1].to_string(),
+                    req_name: fun.clone().to_string() + "Req",
+                    resp_name: fun.to_string() + "Resp",
+                    middlewares: Vec::new(),
+                    uri: format!("/{}/{}/{}", entry_name, group_uri_name, m),
+                    uri2: format!("/{}/{}", group_uri_name, m),
+                };
+
+                if socket {
+                    item.uri = format!("{}.{}", group.group, m);
+                }
+                let rm = find_string_sub_match(&handler_middle_exp, line);
+                if rm.len() == 2 {
+                    item.middlewares = rm[1].split(',').map(|s| s.to_string()).collect();
+                    if !group.gmiddlewares.is_empty() {
+                        let mut middleware_map = HashSet::new();
+                        let mut middlewares = Vec::new();
+
+                        for middleware in &group.gmiddlewares {
+                            middleware_map.insert(middleware.clone());
+                            middlewares.push(middleware.clone());
+                        }
+
+                        for middleware in &item.middlewares {
+                            if !middleware_map.contains(middleware) {
+                                middlewares.push(middleware.clone());
+                            }
+                        }
+                        item.middlewares = middlewares;
+                    }
+                } else {
+                    item.middlewares = group.gmiddlewares.clone();
+                }
+
+                group.fun_list.push(item);
+            }
+        }
+
+        groups
+    }
     fn gen_app_types(
         &self,
         root: &str,
