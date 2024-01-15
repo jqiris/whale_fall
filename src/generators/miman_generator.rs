@@ -89,12 +89,15 @@ impl IGenerator for MimanGenerator {
                 list.append(&mut do_next_list);
             }
             //app types list
-            let cmds = buiness.find_list_by_name("cmd");
-            for cmd in cmds {
-                let app_list = cmd.get_dir_childs();
-                for app in app_list {
-                    let mut app_types = self.gen_app_types(root, pkg, &app, &micro_apps)?;
-                    list.append(&mut app_types);
+            let apps = buiness.get_dir_childs();
+            for app in apps {
+                if let Some(cmd) = app.find_by_name("cmd") {
+                    let modules = cmd.get_dir_childs();
+                    for module in modules {
+                        let mut app_types =
+                            self.gen_app_types(root, pkg, &app, &module, &micro_apps)?;
+                        list.append(&mut app_types);
+                    }
                 }
             }
         }
@@ -114,13 +117,16 @@ impl MimanGenerator {
         root: &str,
         pkg: &str,
         app: &MetaNode,
+        module: &MetaNode,
         micro_apps: &Vec<MetaNode>,
     ) -> Result<Vec<GenerateData>> {
         let mut list = Vec::new();
         let app_rel_path = rel_path(root, &app.path);
         let app_pkg_path = format!("{}/{}", pkg, app_rel_path);
+        let module_rel_path = rel_path(root, &module.path);
+        let module_pkg_path = format!("{}/{}", pkg, module_rel_path);
         //micro types
-        if let Some(main) = app.find_go_func("main") {
+        if let Some(main) = module.find_go_func("main") {
             if main.comment.len() > 0 {
                 let use_micros = self.main_micro_parse(&main.comment);
                 if use_micros.len() > 0 {
@@ -139,7 +145,7 @@ impl MimanGenerator {
                         let micro_pkg_path = format!("{}/{}", pkg, micro_rel_path);
                         let as_vecs: Vec<(String, String)> = vec![(
                             "types".to_string(),
-                            format!("{}/types/{}", app_pkg_path, micro_package.clone()),
+                            format!("{}/types/{}", module_pkg_path, micro_package.clone()),
                         )];
                         let header_conv = header::HeaderWithAs {
                             package: "converter".to_string(),
@@ -187,7 +193,7 @@ impl MimanGenerator {
                                 }
                                 list.push(GenerateData {
                                     path: path_join(&[
-                                        &app.path,
+                                        &module.path,
                                         "types",
                                         &micro_package,
                                         &format!("entity_{}", fname),
@@ -199,7 +205,7 @@ impl MimanGenerator {
                             }
                             list.push(GenerateData {
                                 path: path_join(&[
-                                    &app.path,
+                                    &module.path,
                                     "converter",
                                     &format!("{}_converter_gen.go", micro_package),
                                 ]),
@@ -211,6 +217,61 @@ impl MimanGenerator {
                     }
                 }
             }
+        }
+        //business types
+        if let Some(entity) = app.find_by_name("entity") {
+            let xst_list = entity.go_struct_list();
+            let mut xst_maps: HashMap<String, Vec<XST>> = HashMap::new();
+            for xst in xst_list {
+                if !xst_maps.contains_key(&xst.file) {
+                    xst_maps.insert(xst.file.clone(), Vec::new());
+                }
+                xst_maps.get_mut(&xst.file).unwrap().push(xst);
+            }
+            let mut exist_maps = HashMap::new();
+            if let Some(types) = module.find_by_name("types") {
+                exist_maps = types.go_struct_maps();
+            }
+            let header_conv = header::Header {
+                package: "converter".to_string(),
+                imports: vec![
+                    format!("{}/common/tools", pkg),
+                    format!("{}/common/core/log", pkg),
+                    format!("{}/common/tools/tool_time", pkg),
+                    format!("{}/entity", app_pkg_path),
+                    format!("{}/types", module_pkg_path),
+                ],
+                allow_edit: false,
+            };
+            let header_types = header::Header {
+                package: "types".to_string(),
+                imports: vec!["time".to_string()],
+                allow_edit: true,
+            };
+            let mut bufc = header_conv.execute()?;
+            for (file, xst_list) in xst_maps {
+                let mut bufd = header_types.execute()?;
+                let fname = path_name(&Path::new(&file));
+                for xst in xst_list {
+                    let xst_default = &mut XST::default();
+                    let old_xst = exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
+                    let (_b, _bc) = self._types(&xst, old_xst, "json", "")?;
+                    bufd += &_b;
+                    bufc += &_bc;
+                }
+                list.push(GenerateData {
+                    path: path_join(&[&module.path, "types", &format!("entity_{}", fname)]),
+                    gen_type: GenerateType::GenerateTypeMiman,
+                    out_type: OutputType::OutputTypeGo,
+                    content: bufd,
+                })
+            }
+            list.push(GenerateData {
+                path: path_join(&[&module.path, "converter", "entity_converter_gen.go"]),
+                gen_type: GenerateType::GenerateTypeMiman,
+                out_type: OutputType::OutputTypeGo,
+                content: bufc,
+            })
         }
         Ok(list)
     }
