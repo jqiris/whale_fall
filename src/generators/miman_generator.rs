@@ -397,7 +397,7 @@ impl MimanGenerator {
             }
         }
         for group in &ef.groups {
-            let group_type = format!("{}.go", group.group);
+            let group_type = format!("io_{}.go", group.group);
             if let Some(file) = has_file_map.get(&group_type) {
                 let mut _t = http_types::HandlerTypesAppend {
                     body: file.to_string(),
