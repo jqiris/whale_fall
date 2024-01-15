@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 const IO_TPL: &str = r#"
 type {{name}} struct{
 {{#each fields}}
-    {{name}} {{type_}} {{tag}} // {{comment}}
+    {{name}} {{type_}} {{{tag}}} // {{comment}}
 {{/each}}
 }
 "#;

@@ -137,20 +137,20 @@ impl MimanGenerator {
                         let micro_package = format!("micro_{}", micro_app.name);
                         let micro_rel_path = rel_path(root, &micro_app.path);
                         let micro_pkg_path = format!("{}/{}", pkg, micro_rel_path);
-                        let header_conv = header::Header {
+                        let as_vecs: Vec<(String, String)> = vec![(
+                            "types".to_string(),
+                            format!("{}/types/{}", app_pkg_path, micro_package.clone()),
+                        )];
+                        let header_conv = header::HeaderWithAs {
                             package: "converter".to_string(),
                             imports: vec![
                                 format!("{}/common/tools", pkg),
                                 format!("{}/common/core/log", pkg),
                                 format!("{}/common/tools/tool_time", pkg),
                                 format!("{}/entity", micro_pkg_path),
-                                format!(
-                                    "types \"{}/types/{}\"",
-                                    app_pkg_path,
-                                    micro_package.clone()
-                                ),
                             ],
                             allow_edit: false,
+                            as_vecs,
                         };
                         let header_micro = header::Header {
                             package: micro_package.clone(),
@@ -391,9 +391,9 @@ impl MimanGenerator {
         let buf = conv_gen.execute()?;
         Ok(buf)
     }
-    fn main_micro_parse(&self, doc: &str) -> Vec<String> {
+    pub fn main_micro_parse(&self, doc: &str) -> Vec<String> {
         let mut list: Vec<String> = Vec::new();
-        let micro_exp = Regex::new(r"@MICRO\\[([\\w|,]+)]").unwrap();
+        let micro_exp = Regex::new(r"@MICRO\[([\w|,]+)]").unwrap();
         let r = find_string_sub_match(&micro_exp, doc);
         if r.len() > 1 {
             list = r[1].split(",").map(String::from).collect();
