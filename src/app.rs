@@ -65,6 +65,7 @@ impl App {
                     generate_list.append(&mut gen_list);
                 }
             }
+            generate_list.sort_by(|a, b| a.seq.cmp(&b.seq));
             for outputer in composer.outputers {
                 output(&outputer, generate_list.clone())?;
             }

@@ -77,6 +77,7 @@ impl IGenerator for MimanGenerator {
                     gen_type: self.generate_type(),
                     out_type: OutputType::OutputTypeGo,
                     content: tpl.execute()?,
+                    ..Default::default()
                 });
             }
         }
@@ -160,6 +161,7 @@ impl MimanGenerator {
                         gen_type: GenerateType::GenerateTypeMiman,
                         out_type: OutputType::OutputTypeGo,
                         content: buf,
+                        ..Default::default()
                     });
                     let mut handler_list = self.gen_route_handler(module, &ef)?;
                     list.append(&mut handler_list);
@@ -225,6 +227,7 @@ impl MimanGenerator {
             gen_type: GenerateType::GenerateTypeMiman,
             out_type: OutputType::OutputTypeMd,
             content: buf,
+            ..Default::default()
         });
         Ok(list)
     }
@@ -259,6 +262,7 @@ impl MimanGenerator {
             gen_type: GenerateType::GenerateTypeMiman,
             out_type: OutputType::OutputTypeMd,
             content: buf,
+            ..Default::default()
         })
     }
 
@@ -363,6 +367,7 @@ impl MimanGenerator {
                     gen_type: GenerateType::GenerateTypeMiman,
                     out_type: OutputType::OutputTypeGo,
                     content: buf,
+                    ..Default::default()
                 });
             } else {
                 let _t = http_types::HandlerTypes {
@@ -377,6 +382,7 @@ impl MimanGenerator {
                     gen_type: GenerateType::GenerateTypeMiman,
                     out_type: OutputType::OutputTypeGo,
                     content: buf,
+                    ..Default::default()
                 });
             }
         }
@@ -418,6 +424,7 @@ impl MimanGenerator {
                     gen_type: GenerateType::GenerateTypeMiman,
                     out_type: OutputType::OutputTypeGo,
                     content: buf,
+                    ..Default::default()
                 });
             } else {
                 let _t = handler::HandlerFunc {
@@ -432,6 +439,7 @@ impl MimanGenerator {
                     gen_type: GenerateType::GenerateTypeMiman,
                     out_type: OutputType::OutputTypeGo,
                     content: buf,
+                    ..Default::default()
                 });
             }
         }
@@ -610,6 +618,7 @@ impl MimanGenerator {
                                     gen_type: GenerateType::GenerateTypeMiman,
                                     out_type: OutputType::OutputTypeGo,
                                     content: bufd,
+                                    ..Default::default()
                                 })
                             }
                             list.push(GenerateData {
@@ -621,6 +630,7 @@ impl MimanGenerator {
                                 gen_type: GenerateType::GenerateTypeMiman,
                                 out_type: OutputType::OutputTypeGo,
                                 content: bufc,
+                                ..Default::default()
                             })
                         }
                     }
@@ -673,6 +683,7 @@ impl MimanGenerator {
                     gen_type: GenerateType::GenerateTypeMiman,
                     out_type: OutputType::OutputTypeGo,
                     content: bufd,
+                    ..Default::default()
                 })
             }
             list.push(GenerateData {
@@ -680,6 +691,7 @@ impl MimanGenerator {
                 gen_type: GenerateType::GenerateTypeMiman,
                 out_type: OutputType::OutputTypeGo,
                 content: bufc,
+                ..Default::default()
             })
         }
         Ok(list)
@@ -906,12 +918,14 @@ impl MimanGenerator {
                         gen_type: self.generate_type(),
                         out_type: OutputType::OutputTypeGo,
                         content: bufe,
+                        ..Default::default()
                     },
                     GenerateData {
                         path: path_join(&[&data.path, "service_gen.go"]),
                         gen_type: self.generate_type(),
                         out_type: OutputType::OutputTypeGo,
                         content: bufs,
+                        ..Default::default()
                     },
                 ]);
                 let mut func_list = self.micro_func_io(root, pkg, data, &items)?;
@@ -965,6 +979,7 @@ impl MimanGenerator {
                                 gen_type: self.generate_type(),
                                 out_type: OutputType::OutputTypeGo,
                                 content: tpl.execute()?,
+                                ..Default::default()
                             });
                         }
                     }
@@ -981,6 +996,7 @@ impl MimanGenerator {
                                 gen_type: self.generate_type(),
                                 out_type: OutputType::OutputTypeGo,
                                 content: tpl.execute()?,
+                                ..Default::default()
                             });
                         }
                     }
@@ -998,6 +1014,7 @@ impl MimanGenerator {
                             gen_type: self.generate_type(),
                             out_type: OutputType::OutputTypeGo,
                             content: tpl.execute()?,
+                            ..Default::default()
                         });
                     }
                 }
@@ -1036,6 +1053,7 @@ impl MimanGenerator {
                             gen_type: self.generate_type(),
                             out_type: OutputType::OutputTypeGo,
                             content: tpl.execute()?,
+                            ..Default::default()
                         });
                     }
                 }
@@ -1051,6 +1069,7 @@ impl MimanGenerator {
                             gen_type: self.generate_type(),
                             out_type: OutputType::OutputTypeGo,
                             content: tpl.execute()?,
+                            ..Default::default()
                         });
                     }
                 }
@@ -1067,6 +1086,7 @@ impl MimanGenerator {
                         gen_type: self.generate_type(),
                         out_type: OutputType::OutputTypeGo,
                         content: tpl.execute()?,
+                        seq: 1,
                     });
                 }
             }
@@ -1129,6 +1149,7 @@ impl MimanGenerator {
             gen_type: self.generate_type(),
             out_type: OutputType::OutputTypeGo,
             content: buf,
+            ..Default::default()
         };
         Ok(gen_data)
     }
@@ -1165,12 +1186,14 @@ impl MimanGenerator {
                 gen_type: self.generate_type(),
                 out_type: OutputType::OutputTypeGo,
                 content: buf_do,
+                seq: 2,
             },
             GenerateData {
                 path: path_join(&[&path_parent, "dao", "dao_gen.go"]),
                 gen_type: self.generate_type(),
                 out_type: OutputType::OutputTypeGo,
                 content: buf_dao,
+                seq: 2,
             },
         ];
         Ok(list)
@@ -1216,6 +1239,7 @@ impl MimanGenerator {
                     gen_type: self.generate_type(),
                     out_type: OutputType::OutputTypeGo,
                     content: buf_repo,
+                    seq: 1,
                 },
                 GenerateData {
                     path: path_join(&[
@@ -1227,6 +1251,7 @@ impl MimanGenerator {
                     gen_type: self.generate_type(),
                     out_type: OutputType::OutputTypeGo,
                     content: buf_dbal,
+                    seq: 1,
                 },
             ]);
         }
@@ -1265,6 +1290,7 @@ impl MimanGenerator {
                 gen_type: self.generate_type(),
                 out_type: OutputType::OutputTypeGo,
                 content: bufd,
+                seq: 1,
             },
             GenerateData {
                 path: path_join(&[
@@ -1277,6 +1303,7 @@ impl MimanGenerator {
                 gen_type: self.generate_type(),
                 out_type: OutputType::OutputTypeGo,
                 content: bufc,
+                seq: 1,
             },
         ];
         Ok(list)
@@ -1287,6 +1314,7 @@ impl MimanGenerator {
             gen_type: self.generate_type(),
             out_type: OutputType::OutputTypeGo,
             content: "".to_string(),
+            seq: 1,
         };
         let xst_list = data.go_struct_list();
         let import = type_def::EntityTypeImport {

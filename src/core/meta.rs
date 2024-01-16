@@ -156,12 +156,24 @@ impl Default for GenerateType {
         GenerateType::GenerateTypeMiman
     }
 }
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct GenerateData {
     pub path: String,
     pub gen_type: GenerateType,
     pub out_type: OutputType,
     pub content: String,
+    pub seq: u32,
+}
+impl Default for GenerateData {
+    fn default() -> Self {
+        Self {
+            path: Default::default(),
+            gen_type: Default::default(),
+            out_type: Default::default(),
+            content: Default::default(),
+            seq: 9999,
+        }
+    }
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum OutputType {
