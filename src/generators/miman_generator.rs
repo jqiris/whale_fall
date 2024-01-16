@@ -20,6 +20,7 @@ use crate::{
 };
 use anyhow::{Ok, Result};
 use regex::Regex;
+use serde_json::{json, Value};
 pub struct MimanGenerator {}
 
 impl fmt::Display for MimanGenerator {
@@ -241,7 +242,7 @@ impl MimanGenerator {
             .unwrap_or_else(|| panic!("Missing response struct: {}", f.resp_name));
         let request = self.to_docs_item_fields(&req_xst.fields, struct_list, String::new());
         let response = self.to_docs_item_fields(&resp_xst.fields, struct_list, String::new());
-        let exp_json = self.get_json(&resp_xst.fields, struct_list);
+        let exp_json = self.get_json(&resp_xst.fields, struct_list).to_string();
         let mut _t = docs::DocsItem {
             name: f.fun_mark.clone(),
             route_path: f.uri.clone(),
@@ -261,20 +262,17 @@ impl MimanGenerator {
         &self,
         fields: &HashMap<String, XField>,
         struct_list: &HashMap<String, XST>,
-    ) -> String {
-        let mut list = Vec::new();
-        list.push("{".to_string());
+    ) -> Value {
+        let mut maps = HashMap::new();
         for (_, field) in fields {
             if let Some(j) = field.get_tag("json") {
-                let line = format!("\"{}\":{}", j.name, self.get_json_val(field, struct_list));
-                list.push(line);
+                let (k, v) = (j.name, self.get_json_val(field, struct_list));
+                maps.insert(k, v);
             }
         }
-        list.push("}".to_string());
-        let data = list.join("\n");
-        data
+        json!(maps)
     }
-    fn get_json_val(&self, field: &XField, struct_list: &HashMap<String, XST>) -> String {
+    fn get_json_val(&self, field: &XField, struct_list: &HashMap<String, XST>) -> Value {
         match field.stype {
             XType::XTypeStruct => {
                 let sk = field.xtype.trim_start_matches('*').to_string();
@@ -284,25 +282,27 @@ impl MimanGenerator {
             }
             XType::XTypeSlice => {
                 let sk = field.xtype.replace("*", "").replace("[]", "");
+                let mut list = Vec::new();
                 if let Some(v) = struct_list.get(&sk) {
-                    return self.get_json(&v.fields, struct_list);
+                    list.push(self.get_json(&v.fields, struct_list));
                 } else {
-                    return self.get_zero_val(&field.xtype);
+                    list.push(self.get_zero_val(&field.xtype));
                 }
+                return json!(list);
             }
             _ => {
                 return self.get_zero_val(&field.xtype);
             }
         }
-        "".to_string()
+        json!("")
     }
 
-    fn get_zero_val(&self, x_type: &str) -> String {
+    fn get_zero_val(&self, x_type: &str) -> Value {
         match x_type {
-            "bool" => "true".to_string(),
-            x if x.contains("int") => "0".to_string(),
-            x if x.contains("float") => "0.1".to_string(),
-            _ => "\"\"".to_string(),
+            "bool" => json!(true),
+            x if x.contains("int") => json!(0),
+            x if x.contains("float") => json!(0.1),
+            _ => json!(""),
         }
     }
 
