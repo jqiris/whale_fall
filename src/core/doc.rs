@@ -47,9 +47,10 @@ pub fn gen_json_zero_val(x_type: &str) -> Value {
 }
 
 pub fn sort_fields(fields: &HashMap<String, XField>) -> Vec<XField> {
-    let mut r = vec![XField::default(); fields.len()];
+    let mut r = Vec::new();
     for field in fields.values() {
-        r[field.idx as usize] = field.clone();
+        r.push(field.clone());
     }
+    r.sort_by(|a, b| a.idx.cmp(&b.idx));
     r
 }

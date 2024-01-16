@@ -27,7 +27,7 @@ func generated(r gin.IRoutes) {
 	// ----------------------------------- {{group_name}} -----------------------------------
 	{{#each fun_list}}
 	// {{fun_mark}}
-	r.POST("{{uri}}",{{#each this.middlewares}}middleware.{{this}}{{/each}}, func(ctx *gin.Context) {
+	r.POST("{{uri}}",{{#each this.middlewares}}middleware.{{this}}, {{/each}}func(ctx *gin.Context) {
 		var (
 			st = time.Now()
 			_ctx = common.HTTPMetadata(ctx)

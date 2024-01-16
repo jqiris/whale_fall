@@ -757,7 +757,7 @@ impl MimanGenerator {
                             type2_entity,
                             stype: field.stype.clone() as i32,
                             tag: "`json:\"-\"`".to_string(),
-                            comment: field.comment.clone(),
+                            comment: strip_breaks(&field.comment),
                             hidden: false,
                         });
                         continue;
@@ -772,7 +772,7 @@ impl MimanGenerator {
                 type2_entity,
                 stype: field.stype.clone() as i32,
                 tag: tags,
-                comment: field.comment.clone(),
+                comment: strip_breaks(&field.comment),
                 hidden: false,
             });
         }
@@ -836,7 +836,7 @@ impl MimanGenerator {
                     type2_entity,
                     stype: field.stype.clone() as i32,
                     tag: tags,
-                    comment: field.comment.clone(),
+                    comment: strip_breaks(&field.comment),
                     hidden: false,
                 });
             }
@@ -1402,7 +1402,7 @@ impl MimanGenerator {
                     tag: tags,
                     conv_slice,
                     is_point,
-                    comment: field.comment,
+                    comment: strip_breaks(&field.comment),
                 };
                 gdo.fields.push(do_field);
             }

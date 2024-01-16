@@ -254,14 +254,20 @@ pub fn go_slice_type_str(arg: &SliceType) -> String {
 pub fn go_type_str(arg: &Expression) -> (String, XType) {
     match arg {
         Expression::Selector(x) => {
-            let (point, xtype) = go_type_str(&x.x);
+            let (point, mut xtype) = go_type_str(&x.x);
             let name = format!("{}.{}", point, x.sel.name);
+            if name == "time.Time" {
+                xtype = XType::XTypeTime;
+            }
             (name, xtype)
         }
         Expression::Star(x) => match x.right.borrow() {
             Expression::Selector(_type) => {
-                let (point, xtype) = go_type_str(&_type.x);
+                let (point, mut xtype) = go_type_str(&_type.x);
                 let name = format!("{}.{}", point, _type.sel.name);
+                if name == "time.Time" {
+                    xtype = XType::XTypeTime;
+                }
                 (name, xtype)
             }
             Expression::Ident(_type) => {
@@ -281,7 +287,10 @@ pub fn go_type_str(arg: &Expression) -> (String, XType) {
         Expression::TypeMap(x) => (go_map_type_str(x), XType::XTypeMap),
         Expression::TypeArray(x) => (go_array_type_str(x), XType::XTypeSlice),
         Expression::TypeInterface(_) => ("interface{}".to_string(), XType::XTypeBasic),
-        Expression::TypePointer(x) => go_type_str(&x.typ),
+        Expression::TypePointer(x) => {
+            let (point, xtype) = go_type_str(&x.typ);
+            (format!("*{}", point), xtype)
+        }
         Expression::Call(_x) => {
             // println!("{:?}", x);
             ("".to_string(), XType::XTypeBasic)
@@ -481,10 +490,10 @@ pub fn go_merge_comment(docs: &Vec<Rc<Comment>>) -> String {
 
 impl From<ast::File> for MetaGo {
     fn from(ast_file: ast::File) -> Self {
-        // let path_string = ast_file.path.to_string_lossy().to_string();
-        // if path_string.contains("io_kittenfish.go") {
-        //     println!("{}", path_string);
-        // }
+        let path_string = ast_file.path.to_string_lossy().to_string();
+        if path_string.contains("boutique.go") {
+            println!("{}", path_string);
+        }
         let mut meta_go = MetaGo {
             ast_file: Some(ast_file.clone()),
             inf_list: HashMap::new(),

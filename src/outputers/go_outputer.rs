@@ -36,10 +36,10 @@ impl GoOutputer {
         let parent = option_to_result(file.parent(), anyhow!("invalid path"))?;
         fs::create_dir_all(parent)?;
         fs::write(file, &data.content)?;
-        let output = Command::new("gofmt").arg(&file).output()?;
+        let output = Command::new("goimports").arg("-w").arg(&file).output()?;
         if !output.status.success() {
             return Err(anyhow!(
-                "gofmt error: {}",
+                "goimports error: {}",
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
