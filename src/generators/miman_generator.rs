@@ -273,7 +273,7 @@ impl MimanGenerator {
     ) -> Vec<docs::DocsItemField> {
         let mut _fields = sort_fields(fields);
         let mut request = Vec::new();
-        for field in _fields.iter_mut() {
+        for field in _fields.iter() {
             let j = field.get_tag("json");
             let mut name = String::new();
             if let Some(j) = j {
@@ -802,8 +802,9 @@ impl MimanGenerator {
 
         let conv_buf = self._io_conv(&mut gio, name_mark)?;
         // 自定义字段
-        for (_, field) in old_xst.fields.iter_mut() {
+        for (_, field) in old_xst.fields.iter() {
             if !xst.fields.contains_key(&field.name) {
+                let mut stype = field.stype.clone();
                 let tag_json = field.get_tag("json");
                 let tag_io = field.get_tag(tag_name);
                 let mut tags = String::new();
@@ -834,7 +835,7 @@ impl MimanGenerator {
                     XType::XTypeStruct => {
                         type2 = field.xtype.replace("*", "");
                         if field.xtype.contains("time.Time") {
-                            field.stype = XType::XTypeTime;
+                            stype = XType::XTypeTime;
                             ftype = "string".to_string();
                         }
                     }
@@ -853,7 +854,7 @@ impl MimanGenerator {
                     type_: ftype,
                     type2,
                     type2_entity,
-                    stype: field.stype.clone() as i32,
+                    stype: stype as i32,
                     tag: tags,
                     comment: strip_breaks(&field.comment),
                     hidden: false,
