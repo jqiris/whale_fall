@@ -385,10 +385,10 @@ impl MimanGenerator {
         ef: &http_routes::HttpEntry,
     ) -> Result<Vec<GenerateData>> {
         let mut list = Vec::new();
-        let mut has_func_map = HashMap::new();
+        let mut has_struct_map = HashMap::new();
         let mut has_file_map = HashMap::new();
         if let Some(types) = module.find_by_name("types") {
-            has_func_map = types.go_func_maps();
+            has_struct_map = types.go_struct_maps();
             for group in &ef.groups {
                 let group_type = format!("io_{}.go", group.group);
                 if let Some(file) = types.find_by_name(&group_type) {
@@ -404,7 +404,7 @@ impl MimanGenerator {
                     fun_list: Vec::new(),
                 };
                 for it in group.fun_list.iter() {
-                    if !has_func_map.contains_key(&it.req_name) {
+                    if !has_struct_map.contains_key(&it.req_name) {
                         _t.fun_list.push(it.clone());
                     }
                 }

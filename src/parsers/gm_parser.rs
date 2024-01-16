@@ -41,6 +41,9 @@ impl IParser for GMParser {
                         meta_node.data = Some(MetaData::Md(content));
                     }
                 } else if metadata.is_dir() {
+                    // if meta_node.name == "types" {
+                    //     println!("{} is types", pwd.display());
+                    // }
                     for entry in fs::read_dir(pwd)? {
                         let data = entry?;
                         let (file_type, file_path) = (data.file_type()?, data.path());
