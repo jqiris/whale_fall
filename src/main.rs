@@ -4,6 +4,7 @@ mod app;
 mod asts;
 mod common;
 mod core;
+mod docs;
 mod generators;
 mod outputers;
 mod parsers;

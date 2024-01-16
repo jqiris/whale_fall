@@ -12,11 +12,8 @@ use crate::{
         file::{path_exists, path_join, path_name, path_parent, rel_path},
         str::*,
     },
-    core::{
-        doc::{gen_json_exp, sort_fields},
-        meta::*,
-        traits::IGenerator,
-    },
+    core::{meta::*, traits::IGenerator},
+    docs::go::{gen_json_exp, sort_fields},
     tpls::miman::{
         dao_def, do_def, docs, gi_def, handler, header, http_routes, http_types, micro_entry,
         micro_provider, micro_service, micro_types, repo_def, type_def, types,
