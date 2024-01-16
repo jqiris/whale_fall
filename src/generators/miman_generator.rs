@@ -200,7 +200,7 @@ impl MimanGenerator {
             ]);
             for fun in &group.fun_list {
                 if xst_maps.contains_key(&fun.req_name) {
-                    list.push(self.docs_item(&dir, fun, &xst_maps)?);
+                    list.push(self.gen_docs_item(&dir, fun, &xst_maps)?);
                 }
             }
         }
@@ -226,7 +226,7 @@ impl MimanGenerator {
         Ok(list)
     }
 
-    pub fn docs_item(
+    pub fn gen_docs_item(
         &self,
         dir: &str,
         f: &http_routes::EntryFunItem,
@@ -240,9 +240,9 @@ impl MimanGenerator {
         let resp_xst = struct_list
             .get(&f.resp_name)
             .unwrap_or_else(|| panic!("Missing response struct: {}", f.resp_name));
-        let request = self.to_docs_item_fields(&req_xst.fields, struct_list, String::new());
-        let response = self.to_docs_item_fields(&resp_xst.fields, struct_list, String::new());
-        let exp_json = self.get_json(&resp_xst.fields, struct_list).to_string();
+        let request = self.gen_docs_item_fields(&req_xst.fields, struct_list, String::new());
+        let response = self.gen_docs_item_fields(&resp_xst.fields, struct_list, String::new());
+        let exp_json = self.gen_json_exp(&resp_xst.fields, struct_list).to_string();
         let mut _t = docs::DocsItem {
             name: f.fun_mark.clone(),
             route_path: f.uri.clone(),
@@ -258,7 +258,7 @@ impl MimanGenerator {
             content: buf,
         })
     }
-    fn get_json(
+    fn gen_json_exp(
         &self,
         fields: &HashMap<String, XField>,
         struct_list: &HashMap<String, XST>,
@@ -266,38 +266,38 @@ impl MimanGenerator {
         let mut maps = HashMap::new();
         for (_, field) in fields {
             if let Some(j) = field.get_tag("json") {
-                let (k, v) = (j.name, self.get_json_val(field, struct_list));
+                let (k, v) = (j.name, self.gen_json_val(field, struct_list));
                 maps.insert(k, v);
             }
         }
         json!(maps)
     }
-    fn get_json_val(&self, field: &XField, struct_list: &HashMap<String, XST>) -> Value {
+    fn gen_json_val(&self, field: &XField, struct_list: &HashMap<String, XST>) -> Value {
         match field.stype {
             XType::XTypeStruct => {
                 let sk = field.xtype.trim_start_matches('*').to_string();
                 if let Some(v) = struct_list.get(&sk) {
-                    return self.get_json(&v.fields, struct_list);
+                    return self.gen_json_exp(&v.fields, struct_list);
                 }
             }
             XType::XTypeSlice => {
                 let sk = field.xtype.replace("*", "").replace("[]", "");
                 let mut list = Vec::new();
                 if let Some(v) = struct_list.get(&sk) {
-                    list.push(self.get_json(&v.fields, struct_list));
+                    list.push(self.gen_json_exp(&v.fields, struct_list));
                 } else {
-                    list.push(self.get_zero_val(&field.xtype));
+                    list.push(self.gen_json_zero_val(&field.xtype));
                 }
                 return json!(list);
             }
             _ => {
-                return self.get_zero_val(&field.xtype);
+                return self.gen_json_zero_val(&field.xtype);
             }
         }
         json!("")
     }
 
-    fn get_zero_val(&self, x_type: &str) -> Value {
+    fn gen_json_zero_val(&self, x_type: &str) -> Value {
         match x_type {
             "bool" => json!(true),
             x if x.contains("int") => json!(0),
@@ -306,7 +306,7 @@ impl MimanGenerator {
         }
     }
 
-    pub fn to_docs_item_fields(
+    pub fn gen_docs_item_fields(
         &self,
         fields: &HashMap<String, XField>,
         struct_list: &HashMap<String, XST>,
@@ -333,7 +333,7 @@ impl MimanGenerator {
                     });
                     let sk = field.xtype.trim_start_matches('*').to_string();
                     if let Some(v) = struct_list.get(&sk) {
-                        let r = self.to_docs_item_fields(
+                        let r = self.gen_docs_item_fields(
                             &v.fields,
                             struct_list,
                             prefix.clone() + "&emsp;&emsp;",
@@ -352,7 +352,7 @@ impl MimanGenerator {
                     });
                     let sk = field.xtype.replace("*", "").replace("[]", "");
                     if let Some(v) = struct_list.get(&sk) {
-                        let r = self.to_docs_item_fields(
+                        let r = self.gen_docs_item_fields(
                             &v.fields,
                             struct_list,
                             prefix.clone() + "&emsp;&emsp;[i].",
