@@ -30,6 +30,15 @@ impl MetaNode {
         }
         list
     }
+    pub fn child_dir_exist(&self, name: &str) -> bool {
+        for child in self.childs.iter() {
+            if child.is_dir && child.name == name {
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn find_go_func(&self, name: &str) -> Option<XMethod> {
         if let Some(data) = &self.data {
             if let MetaData::Go(go) = data {

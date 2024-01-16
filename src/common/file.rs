@@ -37,3 +37,8 @@ pub fn rel_path(root: &str, path: &str) -> String {
     rel_path = rel_path.strip_prefix("/").unwrap_or(&rel_path).to_string();
     rel_path
 }
+
+pub fn path_exists(path: &str) -> bool {
+    let path = Path::new(path);
+    path.exists()
+}

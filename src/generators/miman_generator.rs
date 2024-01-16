@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     common::{
-        file::{path_join, path_name, path_parent, rel_path},
+        file::{path_exists, path_join, path_name, path_parent, rel_path},
         go::{XField, XType, XST},
         str::*,
     },
@@ -104,10 +104,12 @@ impl IGenerator for MimanGenerator {
                 if let Some(cmd) = app.find_by_name("cmd") {
                     let modules = cmd.get_dir_childs();
                     for module in modules {
-                        //app types
-                        let mut app_types =
-                            self.gen_app_types(root, pkg, &app, &module, &micro_apps)?;
-                        list.append(&mut app_types);
+                        if module.child_dir_exist("types") && module.child_dir_exist("converter") {
+                            //app types
+                            let mut app_types =
+                                self.gen_app_types(root, pkg, &app, &module, &micro_apps)?;
+                            list.append(&mut app_types);
+                        }
                         //app handlers
                         let mut app_handlers = self.gen_app_handlers(root, pkg, &app, &module)?;
                         list.append(&mut app_handlers);
@@ -1232,28 +1234,31 @@ impl MimanGenerator {
                 table_name: table_name.clone(),
                 has_id: has_id_map.get(&entity).unwrap_or(&false).to_owned(),
             };
-            let (buf_repo, buf_dbal) = (tpl.execute()?, tpl.execute_impl()?);
-            list.append(&mut vec![
-                GenerateData {
-                    path: path_join(&[&path_parent, "repo", &format!("{}_repo.go", table_name)]),
+            let repo_path = path_join(&[&path_parent, "repo", &format!("{}_repo.go", table_name)]);
+            if !path_exists(&repo_path) {
+                list.push(GenerateData {
+                    path: repo_path,
                     gen_type: self.generate_type(),
                     out_type: OutputType::OutputTypeGo,
-                    content: buf_repo,
+                    content: tpl.execute()?,
                     seq: 1,
-                },
-                GenerateData {
-                    path: path_join(&[
-                        &path_parent,
-                        "repo",
-                        "dbal",
-                        &format!("{}_dbal.go", table_name),
-                    ]),
-                    gen_type: self.generate_type(),
-                    out_type: OutputType::OutputTypeGo,
-                    content: buf_dbal,
-                    seq: 1,
-                },
+                });
+            }
+            let dbal_path = path_join(&[
+                &path_parent,
+                "repo",
+                "dbal",
+                &format!("{}_dbal.go", table_name),
             ]);
+            if !path_exists(&dbal_path) {
+                list.push(GenerateData {
+                    path: dbal_path,
+                    gen_type: self.generate_type(),
+                    out_type: OutputType::OutputTypeGo,
+                    content: tpl.execute_impl()?,
+                    seq: 1,
+                })
+            }
         }
         Ok(list)
     }

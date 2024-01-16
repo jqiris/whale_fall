@@ -490,10 +490,10 @@ pub fn go_merge_comment(docs: &Vec<Rc<Comment>>) -> String {
 
 impl From<ast::File> for MetaGo {
     fn from(ast_file: ast::File) -> Self {
-        let path_string = ast_file.path.to_string_lossy().to_string();
-        if path_string.contains("boutique.go") {
-            println!("{}", path_string);
-        }
+        // let path_string = ast_file.path.to_string_lossy().to_string();
+        // if path_string.contains("mail.go") {
+        //     println!("{}", path_string);
+        // }
         let mut meta_go = MetaGo {
             ast_file: Some(ast_file.clone()),
             inf_list: HashMap::new(),
