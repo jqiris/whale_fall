@@ -19,6 +19,7 @@ impl IOutputer for GoOutputer {
     }
 
     fn output(&self, data: Vec<GenerateData>) -> Result<()> {
+        self.check_go_imports()?;
         for item in data {
             if item.out_type != self.output_type() {
                 continue;
@@ -30,6 +31,20 @@ impl IOutputer for GoOutputer {
 }
 
 impl GoOutputer {
+    fn check_go_imports(&self) -> Result<()> {
+        if let Err(_) = Command::new("goimports").arg("--version").output() {
+            let install_output = Command::new("go")
+                .arg("install")
+                .arg("golang.org/x/tools/cmd/goimports@latest")
+                .output()?;
+            if install_output.status.success() {
+                println!("goimports command installed successfully");
+            } else {
+                return Err(anyhow!("Failed to install goimports command"));
+            }
+        }
+        Ok(())
+    }
     fn produce(&self, data: &GenerateData) -> Result<()> {
         //创建目录
         let file = Path::new(&data.path);
