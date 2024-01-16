@@ -596,32 +596,36 @@ impl MimanGenerator {
                             if let Some(types) = micro_app.find_by_name(&micro_package) {
                                 exist_maps = types.go_struct_maps();
                             }
-                            for (file, xst_list) in xst_maps {
-                                let mut bufd = header_micro.execute()?;
-                                let fname = path_name(&Path::new(&file));
-                                for xst in xst_list {
-                                    let xst_default = &mut XST::default();
-                                    let old_xst =
-                                        exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
-                                    let name_mark =
-                                        format!("Micro{}", to_upper_first(&micro_app.name));
-                                    let (_b, _bc) =
-                                        self._types(&xst, old_xst, "json", &name_mark)?;
-                                    bufd += &_b;
-                                    bufc += &_bc;
+                            let mut files: Vec<&String> = xst_maps.keys().collect();
+                            files.sort();
+                            for file in files {
+                                if let Some(xst_list) = xst_maps.get(file) {
+                                    let mut bufd = header_micro.execute()?;
+                                    let fname = path_name(&Path::new(&file));
+                                    for xst in xst_list {
+                                        let xst_default = &mut XST::default();
+                                        let old_xst =
+                                            exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
+                                        let name_mark =
+                                            format!("Micro{}", to_upper_first(&micro_app.name));
+                                        let (_b, _bc) =
+                                            self._types(&xst, old_xst, "json", &name_mark)?;
+                                        bufd += &_b;
+                                        bufc += &_bc;
+                                    }
+                                    list.push(GenerateData {
+                                        path: path_join(&[
+                                            &module.path,
+                                            "types",
+                                            &micro_package,
+                                            &format!("entity_{}", fname),
+                                        ]),
+                                        gen_type: GenerateType::GenerateTypeMiman,
+                                        out_type: OutputType::OutputTypeGo,
+                                        content: bufd,
+                                        ..Default::default()
+                                    })
                                 }
-                                list.push(GenerateData {
-                                    path: path_join(&[
-                                        &module.path,
-                                        "types",
-                                        &micro_package,
-                                        &format!("entity_{}", fname),
-                                    ]),
-                                    gen_type: GenerateType::GenerateTypeMiman,
-                                    out_type: OutputType::OutputTypeGo,
-                                    content: bufd,
-                                    ..Default::default()
-                                })
                             }
                             list.push(GenerateData {
                                 path: path_join(&[
@@ -670,23 +674,27 @@ impl MimanGenerator {
                 allow_edit: true,
             };
             let mut bufc = header_conv.execute()?;
-            for (file, xst_list) in xst_maps {
-                let mut bufd = header_types.execute()?;
-                let fname = path_name(&Path::new(&file));
-                for xst in xst_list {
-                    let xst_default = &mut XST::default();
-                    let old_xst = exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
-                    let (_b, _bc) = self._types(&xst, old_xst, "json", "")?;
-                    bufd += &_b;
-                    bufc += &_bc;
+            let mut files: Vec<&String> = xst_maps.keys().collect();
+            files.sort();
+            for file in files {
+                if let Some(xst_list) = xst_maps.get(file) {
+                    let mut bufd = header_types.execute()?;
+                    let fname = path_name(&Path::new(&file));
+                    for xst in xst_list {
+                        let xst_default = &mut XST::default();
+                        let old_xst = exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
+                        let (_b, _bc) = self._types(&xst, old_xst, "json", "")?;
+                        bufd += &_b;
+                        bufc += &_bc;
+                    }
+                    list.push(GenerateData {
+                        path: path_join(&[&module.path, "types", &format!("entity_{}", fname)]),
+                        gen_type: GenerateType::GenerateTypeMiman,
+                        out_type: OutputType::OutputTypeGo,
+                        content: bufd,
+                        ..Default::default()
+                    })
                 }
-                list.push(GenerateData {
-                    path: path_join(&[&module.path, "types", &format!("entity_{}", fname)]),
-                    gen_type: GenerateType::GenerateTypeMiman,
-                    out_type: OutputType::OutputTypeGo,
-                    content: bufd,
-                    ..Default::default()
-                })
             }
             list.push(GenerateData {
                 path: path_join(&[&module.path, "converter", "entity_converter_gen.go"]),
@@ -872,6 +880,7 @@ impl MimanGenerator {
             fields: gio.fields.clone(),
             ..Default::default()
         };
+        // println!("conv_gen:{:?}", conv_gen);
         let buf = conv_gen.execute()?;
         Ok(buf)
     }

@@ -7,13 +7,13 @@ const DO_TPL: &str = r#"
 type {{name}}Do struct {
     {{#each fields}}
         {{#if (eq stype 4)}}
-        {{name}} *{{type_}} {{{tag}}} // {{comment}}
+        {{name}} *{{type_}} {{{tag}}} // {{{comment}}}
         {{/if}}
         {{#if (and (gt stype 0) (lt stype 4))}}
-        {{name}} string {{{tag}}} // {{comment}}
+        {{name}} string {{{tag}}} // {{{comment}}}
         {{/if}}
         {{#if (or (le stype 0) (gt stype 4))}}
-        {{name}} {{type_}} {{{tag}}} // {{comment}}
+        {{name}} {{type_}} {{{tag}}} // {{{comment}}}
         {{/if}}
     {{/each}}
         {{#if delete_at}}

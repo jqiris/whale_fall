@@ -31,7 +31,7 @@ import (
 {{#each imports }}
 "{{{this}}}"
 {{/each}}
-{{#each as_maps }}
+{{#each as_vecs }}
 {{{this.0}}} "{{{this.1}}}"
 {{/each}}
 )

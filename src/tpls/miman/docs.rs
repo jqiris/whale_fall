@@ -11,7 +11,7 @@ const DOCS_ITEM_TPL: &str = r#"# {{name}}
 | 字段     | 类型     | 是否必填 | 含义  |
 |--------|--------|------|-----|
 {{#each request}}
-| {{{name}}} | {{type_}} | {{must}} | {{comment}} |
+| {{{name}}} | {{type_}} | {{must}} | {{{comment}}} |
 {{/each}}
 
 ## 响应
@@ -19,7 +19,7 @@ const DOCS_ITEM_TPL: &str = r#"# {{name}}
 | 字段          | 类型     | 含义     |
 |-------------|--------|--------|
 {{#each response}}
-| {{{name}}} | {{type_}} | {{comment}} |
+| {{{name}}} | {{type_}} | {{{comment}}} |
 {{/each}}
 
 ## 响应例子

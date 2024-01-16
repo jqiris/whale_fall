@@ -254,21 +254,15 @@ pub fn go_slice_type_str(arg: &SliceType) -> String {
 pub fn go_type_str(arg: &Expression) -> (String, XType) {
     match arg {
         Expression::Selector(x) => {
-            let (point, mut xtype) = go_type_str(&x.x);
+            let (point, _) = go_type_str(&x.x);
             let name = format!("{}.{}", point, x.sel.name);
-            if name == "time.Time" {
-                xtype = XType::XTypeTime;
-            }
-            (name, xtype)
+            (name, XType::XTypeStruct)
         }
         Expression::Star(x) => match x.right.borrow() {
             Expression::Selector(_type) => {
-                let (point, mut xtype) = go_type_str(&_type.x);
-                let name = format!("{}.{}", point, _type.sel.name);
-                if name == "time.Time" {
-                    xtype = XType::XTypeTime;
-                }
-                (name, xtype)
+                let (point, _) = go_type_str(&_type.x);
+                let name = format!("*{}.{}", point, _type.sel.name);
+                (name, XType::XTypeStruct)
             }
             Expression::Ident(_type) => {
                 if is_first_uppercase(&_type.name) {
