@@ -12,7 +12,11 @@ use crate::{
         go::{XField, XType, XST},
         str::*,
     },
-    core::{meta::*, traits::IGenerator},
+    core::{
+        doc::{gen_json_exp, sort_fields},
+        meta::*,
+        traits::IGenerator,
+    },
     tpls::miman::{
         dao_def, do_def, docs, gi_def, handler, header, http_routes, http_types, micro_entry,
         micro_provider, micro_service, micro_types, repo_def, type_def, types,
@@ -20,7 +24,6 @@ use crate::{
 };
 use anyhow::{Ok, Result};
 use regex::Regex;
-use serde_json::{json, Value};
 pub struct MimanGenerator {}
 
 impl fmt::Display for MimanGenerator {
@@ -242,7 +245,7 @@ impl MimanGenerator {
             .unwrap_or_else(|| panic!("Missing response struct: {}", f.resp_name));
         let request = self.gen_docs_item_fields(&req_xst.fields, struct_list, String::new());
         let response = self.gen_docs_item_fields(&resp_xst.fields, struct_list, String::new());
-        let exp_json = self.gen_json_exp(&resp_xst.fields, struct_list).to_string();
+        let exp_json = gen_json_exp(&resp_xst.fields, struct_list).to_string();
         let mut _t = docs::DocsItem {
             name: f.fun_mark.clone(),
             route_path: f.uri.clone(),
@@ -258,53 +261,6 @@ impl MimanGenerator {
             content: buf,
         })
     }
-    fn gen_json_exp(
-        &self,
-        fields: &HashMap<String, XField>,
-        struct_list: &HashMap<String, XST>,
-    ) -> Value {
-        let mut maps = HashMap::new();
-        for (_, field) in fields {
-            if let Some(j) = field.get_tag("json") {
-                let (k, v) = (j.name, self.gen_json_val(field, struct_list));
-                maps.insert(k, v);
-            }
-        }
-        json!(maps)
-    }
-    fn gen_json_val(&self, field: &XField, struct_list: &HashMap<String, XST>) -> Value {
-        match field.stype {
-            XType::XTypeStruct => {
-                let sk = field.xtype.trim_start_matches('*').to_string();
-                if let Some(v) = struct_list.get(&sk) {
-                    return self.gen_json_exp(&v.fields, struct_list);
-                }
-            }
-            XType::XTypeSlice => {
-                let sk = field.xtype.replace("*", "").replace("[]", "");
-                let mut list = Vec::new();
-                if let Some(v) = struct_list.get(&sk) {
-                    list.push(self.gen_json_exp(&v.fields, struct_list));
-                } else {
-                    list.push(self.gen_json_zero_val(&field.xtype));
-                }
-                return json!(list);
-            }
-            _ => {
-                return self.gen_json_zero_val(&field.xtype);
-            }
-        }
-        json!("")
-    }
-
-    fn gen_json_zero_val(&self, x_type: &str) -> Value {
-        match x_type {
-            "bool" => json!(true),
-            x if x.contains("int") => json!(0),
-            x if x.contains("float") => json!(0.1),
-            _ => json!(""),
-        }
-    }
 
     pub fn gen_docs_item_fields(
         &self,
@@ -312,7 +268,7 @@ impl MimanGenerator {
         struct_list: &HashMap<String, XST>,
         prefix: String,
     ) -> Vec<docs::DocsItemField> {
-        let mut _fields = self.sort_fields(fields);
+        let mut _fields = sort_fields(fields);
         let mut request = Vec::new();
         for field in _fields.iter_mut() {
             let j = field.get_tag("json");
@@ -372,13 +328,6 @@ impl MimanGenerator {
         }
         request
     }
-    fn sort_fields(&self, fields: &HashMap<String, XField>) -> Vec<XField> {
-        let mut r = vec![XField::default(); fields.len()];
-        for field in fields.values() {
-            r[field.idx as usize] = field.clone();
-        }
-        r
-    }
     fn gen_route_types(
         &self,
         module: &MetaNode,
@@ -433,6 +382,7 @@ impl MimanGenerator {
         }
         Ok(list)
     }
+
     fn gen_route_handler(
         &self,
         module: &MetaNode,

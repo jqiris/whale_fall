@@ -1,3 +1,4 @@
+pub mod doc;
 pub mod meta;
 #[cfg(test)]
 mod tests;
