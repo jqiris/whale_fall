@@ -86,7 +86,7 @@ func From{{name}}Entity(input *entity.{{name}}) *do.{{name}}Do{
 			output.{{name}} = &input.{{name}}
 		}
     {{/if}}
-	{{#if (eq stype 0)}}
+	{{#if (and (eq stype -1) (eq stype 0))}}
 	output.{{name}} = input.{{name}}
 	{{/if}}
 {{/each}}

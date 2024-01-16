@@ -55,20 +55,18 @@ pub fn first_upper_index(body: &str) -> i64 {
     }
 }
 
-pub fn to_snake_case(str: &str) -> String {
-    let mut result = String::new();
+pub fn to_snake_case(s: &str) -> String {
+    let match_first_cap = Regex::new(r"(.)([A-Z][a-z]+)").unwrap();
+    let match_all_cap = Regex::new(r"([a-z0-9])([A-Z])").unwrap();
 
-    for (i, c) in str.chars().enumerate() {
-        if c.is_uppercase() {
-            if i > 0 {
-                result.push('_');
-            }
-            result.push(c.to_lowercase().next().unwrap());
-        } else {
-            result.push(c);
-        }
-    }
-    result
+    let snake = match_first_cap.replace_all(s, |caps: &regex::Captures| {
+        format!("{}_{}", &caps[1], &caps[2])
+    });
+
+    let snake = match_all_cap.replace_all(&snake, |caps: &regex::Captures| {
+        format!("{}_{}", &caps[1], &caps[2])
+    });
+    snake.to_lowercase()
 }
 
 pub fn in_slice(slices: &[&str], name: &str) -> bool {

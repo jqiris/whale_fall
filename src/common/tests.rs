@@ -20,7 +20,7 @@ fn path_parent_test() {
 
 #[test]
 fn snake_case_test() {
-    let input_str = "matchFirstCap";
+    let input_str = "RfAddonShopProductSKU";
     let snake_case_str = to_snake_case(input_str);
     println!("Snake case string: {}", snake_case_str);
 }

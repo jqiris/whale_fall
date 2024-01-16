@@ -57,7 +57,7 @@ func From{{name_mark}}{{name}}Entity(input *entity.{{name}}) *types.{{name}}{
 			output.{{name}} = tool_time.TimeToDateTimeString(input.{{name}})
 		}
     {{/if}}
-	{{#if (and (ne stype 1) (ne stype 2) (ne stype 4))}}
+	{{#if (and (eq stype -1) (eq stype 0) (eq stype 3))}}
 	output.{{name}} = input.{{name}}
 	{{/if}}
 {{/each}}
@@ -85,7 +85,7 @@ func To{{name_mark}}{{name}}Entity(input *types.{{name}}) *entity.{{name}}{
 			output.{{name}} = ts
 		}
     {{/if}}
-	{{#if (and (ne stype 1) (ne stype 2) (ne stype 4))}}
+	{{#if (and (eq stype -1) (eq stype 0) (eq stype 3))}}
 	output.{{name}} = input.{{name}}
 	{{/if}}
 {{/each}}
