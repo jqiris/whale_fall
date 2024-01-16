@@ -241,7 +241,12 @@ pub fn go_map_type_str(arg: &MapType) -> String {
     format!("map[{}]{}", key, value)
 }
 
-pub fn go_slice_type_str(arg: &ArrayType) -> String {
+pub fn go_array_type_str(arg: &ArrayType) -> String {
+    let (value, _) = go_type_str(&arg.typ);
+    format!("[]{}", value)
+}
+
+pub fn go_slice_type_str(arg: &SliceType) -> String {
     let (value, _) = go_type_str(&arg.typ);
     format!("[]{}", value)
 }
@@ -274,7 +279,7 @@ pub fn go_type_str(arg: &Expression) -> (String, XType) {
             (x.name.clone(), XType::XTypeBasic)
         }
         Expression::TypeMap(x) => (go_map_type_str(x), XType::XTypeMap),
-        Expression::TypeArray(x) => (go_slice_type_str(x), XType::XTypeSlice),
+        Expression::TypeArray(x) => (go_array_type_str(x), XType::XTypeSlice),
         Expression::TypeInterface(_) => ("interface{}".to_string(), XType::XTypeBasic),
         Expression::TypePointer(x) => go_type_str(&x.typ),
         Expression::Call(_x) => {
@@ -329,10 +334,7 @@ pub fn go_type_str(arg: &Expression) -> (String, XType) {
             // println!("{:?}", x);
             ("".to_string(), XType::XTypeBasic)
         }
-        Expression::TypeSlice(_x) => {
-            // println!("{:?}", x);
-            ("".to_string(), XType::XTypeBasic)
-        }
+        Expression::TypeSlice(x) => (go_slice_type_str(x), XType::XTypeSlice),
         Expression::TypeFunction(_x) => {
             // println!("{:?}", x);
             ("".to_string(), XType::XTypeBasic)
@@ -469,7 +471,12 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
 pub fn go_merge_comment(docs: &Vec<Rc<Comment>>) -> String {
     docs.iter()
         .map(|comment| {
-            let mut text = comment.text.clone().replace("//", "");
+            let mut text = comment
+                .text
+                .clone()
+                .replace("//", "")
+                .replace("\n", "")
+                .replace("\r", "");
             text = text.strip_prefix(" ").unwrap_or(&text).to_string();
             text
         })
@@ -480,7 +487,7 @@ pub fn go_merge_comment(docs: &Vec<Rc<Comment>>) -> String {
 impl From<ast::File> for MetaGo {
     fn from(ast_file: ast::File) -> Self {
         // let path_string = ast_file.path.to_string_lossy().to_string();
-        // if path_string.contains("io_hunting.go") {
+        // if path_string.contains("io_kittenfish.go") {
         //     println!("{}", path_string);
         // }
         let mut meta_go = MetaGo {
