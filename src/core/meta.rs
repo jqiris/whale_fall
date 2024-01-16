@@ -1,7 +1,5 @@
-use crate::common::{
-    go::{MetaGo, XMethod, XST},
-    str::in_slice,
-};
+use crate::asts::go::{MetaGo, XMethod, XST};
+use crate::common::str::in_slice;
 use std::collections::HashMap;
 
 pub enum ParserType {

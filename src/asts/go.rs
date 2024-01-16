@@ -3,7 +3,7 @@ use std::{borrow::Borrow, collections::HashMap, rc::Rc};
 use gosyn::ast::{self, *};
 use regex::Regex;
 
-use super::{
+use crate::common::{
     file::path_str,
     str::{find_string_sub_match, is_first_lowwercase, is_first_uppercase},
 };

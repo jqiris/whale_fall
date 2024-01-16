@@ -1,4 +1,4 @@
-use crate::common::go::{XField, XType, XST};
+use crate::asts::go::{XField, XType, XST};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 

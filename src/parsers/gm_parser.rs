@@ -1,8 +1,6 @@
 use crate::{
-    common::{
-        file::{path_name, path_str},
-        go::MetaGo,
-    },
+    asts::go::MetaGo,
+    common::file::{path_name, path_str},
     core::{meta::*, traits::IParser},
 };
 use anyhow::{anyhow, Result};

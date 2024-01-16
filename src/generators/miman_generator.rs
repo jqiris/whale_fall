@@ -7,9 +7,9 @@ use std::{
 };
 
 use crate::{
+    asts::go::{XField, XType, XST},
     common::{
         file::{path_exists, path_join, path_name, path_parent, rel_path},
-        go::{XField, XType, XST},
         str::*,
     },
     core::{
