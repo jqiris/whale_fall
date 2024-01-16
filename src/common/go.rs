@@ -471,12 +471,7 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
 pub fn go_merge_comment(docs: &Vec<Rc<Comment>>) -> String {
     docs.iter()
         .map(|comment| {
-            let mut text = comment
-                .text
-                .clone()
-                .replace("//", "")
-                .replace("\n", "")
-                .replace("\r", "");
+            let mut text = comment.text.clone().replace("//", "");
             text = text.strip_prefix(" ").unwrap_or(&text).to_string();
             text
         })
