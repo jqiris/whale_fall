@@ -381,7 +381,7 @@ pub fn go_func_args(xtype: &FuncType) -> (Vec<XArg>, Vec<XArg>) {
 pub fn go_interface_func(xtype: InterfaceType) -> HashMap<String, XMethod> {
     let mut methods = HashMap::new();
     for (idx, mt) in xtype.methods.list.iter().enumerate() {
-        let comment: String = mt.comments.iter().map(|x| x.text.clone()).collect();
+        let comment: String = go_merge_comment(&mt.comments);
         let mt_type = mt.typ.clone();
         match mt_type {
             gosyn::ast::Expression::TypeInterface(data) => {
@@ -434,7 +434,7 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
             if let Some(tag) = &fe.tag {
                 xf.tag = tag.value.clone();
             }
-            xf.comment = fe.comments.iter().map(|x| x.text.clone()).collect();
+            xf.comment = go_merge_comment(&fe.comments);
             fields.insert(xf.name.clone(), xf);
         } else {
             let name: Option<String> = match &fe.typ {
@@ -466,7 +466,7 @@ pub fn go_struct_field(xtype: &StructType) -> (HashMap<String, XField>, Vec<Stri
     (fields, child)
 }
 
-pub fn go_merge_comment(docs: Vec<Rc<Comment>>) -> String {
+pub fn go_merge_comment(docs: &Vec<Rc<Comment>>) -> String {
     docs.iter()
         .map(|comment| {
             let mut text = comment.text.clone().replace("//", "");
@@ -502,7 +502,7 @@ impl From<ast::File> for MetaGo {
         for decl in ast_file.decl {
             match decl {
                 ast::Declaration::Function(x) => {
-                    let comment = go_merge_comment(x.docs);
+                    let comment = go_merge_comment(&x.docs);
                     if let Some(recv) = x.recv {
                         let (mut bind_name, mut impl_name) = ("".to_string(), "impl".to_string());
                         for field in recv.list {

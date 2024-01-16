@@ -2,7 +2,7 @@ use super::http_routes::EntryGroup;
 use crate::tpls::engine::render_template;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-const DOCS_ITEM_TPL: &str = r#" {{name}}
+const DOCS_ITEM_TPL: &str = r#"# {{name}}
 
 > {{route_path}}
 
@@ -49,7 +49,7 @@ const DOCS_SIDEBAR_TPL: &str = r#"
 {{#each groups}}
 * {{group_name}}
 {{#each fun_list}}
-* * [{{fun_mark}}]({uri2}})
+* * [{{fun_mark}}]({{uri2}})
 {{/each}}
 {{/each}}
 "#;

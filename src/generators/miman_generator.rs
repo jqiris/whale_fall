@@ -232,7 +232,7 @@ impl MimanGenerator {
         struct_list: &HashMap<String, XST>,
     ) -> Result<GenerateData> {
         let uris = f.uri2.split("/").collect::<Vec<&str>>();
-        let filename = format!("{}/{}.md", dir, uris.last().unwrap_or(&""));
+        let filename = path_join(&[&dir, &format!("{}.md", uris.last().unwrap_or(&""))]);
         let req_xst = struct_list
             .get(&f.req_name)
             .unwrap_or_else(|| panic!("Missing request struct: {}", f.req_name));
