@@ -285,7 +285,7 @@ impl MimanGenerator {
                         name: name.clone(),
                         type_: _type.clone(),
                         must: "Y".to_string(),
-                        comment: field.comment.clone(),
+                        comment: strip_breaks(&field.comment),
                     });
                     let sk = field.xtype.trim_start_matches('*').to_string();
                     if let Some(v) = struct_list.get(&sk) {
@@ -304,7 +304,7 @@ impl MimanGenerator {
                         name: name.clone(),
                         type_: _type.clone(),
                         must: "Y".to_string(),
-                        comment: field.comment.clone(),
+                        comment: strip_breaks(&field.comment),
                     });
                     let sk = field.xtype.replace("*", "").replace("[]", "");
                     if let Some(v) = struct_list.get(&sk) {
@@ -321,7 +321,7 @@ impl MimanGenerator {
                         name: name.clone(),
                         type_: _type.clone(),
                         must: "Y".to_string(),
-                        comment: field.comment.clone(),
+                        comment: strip_breaks(&field.comment),
                     });
                 }
             }

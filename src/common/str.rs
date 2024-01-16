@@ -96,3 +96,13 @@ pub fn to_upper_first(str: &str) -> String {
     }
     result
 }
+
+pub fn strip_breaks(str: &str) -> String {
+    let mut result = String::new();
+    for c in str.chars() {
+        if c != '\r' && c != '\n' {
+            result.push(c);
+        }
+    }
+    result
+}

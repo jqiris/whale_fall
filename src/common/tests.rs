@@ -39,3 +39,10 @@ fn match_gi_test() {
     let rs = find_string_sub_match(&re_di, &input_str);
     println!("rs: {:?}", rs);
 }
+
+#[test]
+fn strip_break_test() {
+    let input_str = "a\r\nb";
+    let rs = strip_breaks(input_str);
+    println!("rs: {}", rs);
+}
