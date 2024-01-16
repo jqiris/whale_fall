@@ -23,6 +23,9 @@ const DOCS_ITEM_TPL: &str = r#"# {{name}}
 {{/each}}
 
 ## 响应例子
+```
+{{{exp_json}}}
+```
 "#;
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct DocsItem {
@@ -30,7 +33,7 @@ pub struct DocsItem {
     pub route_path: String,
     pub request: Vec<DocsItemField>,
     pub response: Vec<DocsItemField>,
-    pub exp_json: Vec<String>,
+    pub exp_json: String,
 }
 impl DocsItem {
     pub fn execute(&self) -> Result<String> {

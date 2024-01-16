@@ -241,17 +241,14 @@ impl MimanGenerator {
             .unwrap_or_else(|| panic!("Missing response struct: {}", f.resp_name));
         let request = self.to_docs_item_fields(&req_xst.fields, struct_list, String::new());
         let response = self.to_docs_item_fields(&resp_xst.fields, struct_list, String::new());
+        let exp_json = self.get_json(&resp_xst.fields, struct_list);
         let mut _t = docs::DocsItem {
             name: f.fun_mark.clone(),
             route_path: f.uri.clone(),
             request,
             response,
-            exp_json: Vec::new(),
+            exp_json,
         };
-        let body = self.get_json(&resp_xst.fields, struct_list);
-        _t.exp_json.push("```\n".to_string());
-        _t.exp_json.push(body);
-        _t.exp_json.push("\n```".to_string());
         let buf = _t.execute()?;
         Ok(GenerateData {
             path: filename,
@@ -266,13 +263,16 @@ impl MimanGenerator {
         struct_list: &HashMap<String, XST>,
     ) -> String {
         let mut list = Vec::new();
+        list.push("{".to_string());
         for (_, field) in fields {
             if let Some(j) = field.get_tag("json") {
                 let line = format!("\"{}\":{}", j.name, self.get_json_val(field, struct_list));
                 list.push(line);
             }
         }
-        list.join("\n")
+        list.push("}".to_string());
+        let data = list.join("\n");
+        data
     }
     fn get_json_val(&self, field: &XField, struct_list: &HashMap<String, XST>) -> String {
         match field.stype {
@@ -302,7 +302,7 @@ impl MimanGenerator {
             "bool" => "true".to_string(),
             x if x.contains("int") => "0".to_string(),
             x if x.contains("float") => "0.1".to_string(),
-            _ => "".to_string(),
+            _ => "\"\"".to_string(),
         }
     }
 
