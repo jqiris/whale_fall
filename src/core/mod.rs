@@ -52,14 +52,14 @@ pub fn parse(name: &str, root: &str) -> Result<MetaNode> {
     }
 }
 
-pub fn process(name: &str, data: MetaNode) -> Result<ProcessData> {
+pub fn process(name: &str, data: &mut MetaNode) -> Result<()> {
     match PROCESSER.lock().unwrap().get(name) {
         Some(processer) => processer.process(data),
         None => Err(anyhow::anyhow!("processer {} not found", name)),
     }
 }
 
-pub fn generate(name: &str, root: &str, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
+pub fn generate(name: &str, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
     match GENERATOR.lock().unwrap().get(name) {
         Some(generator) => generator.generate(root, pkg, data),
         None => Err(anyhow::anyhow!("generator {} not found", name)),

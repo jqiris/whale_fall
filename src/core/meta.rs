@@ -6,17 +6,22 @@ pub enum ParserType {
     ParserTypeGM,
 }
 #[derive(Debug, Clone)]
+pub enum ExtraData {
+    MetaList(Vec<MetaNode>),
+}
+#[derive(Debug, Clone)]
 pub enum MetaData {
     Md(String),
     Go(MetaGo),
 }
 #[derive(Debug, Clone)]
 pub struct MetaNode {
-    pub name: String,           //名字
-    pub path: String,           //路径
-    pub is_dir: bool,           //是否是目录
-    pub childs: Vec<MetaNode>,  //子节点
-    pub data: Option<MetaData>, //数据
+    pub name: String,                                   //名字
+    pub path: String,                                   //路径
+    pub is_dir: bool,                                   //是否是目录
+    pub childs: Vec<MetaNode>,                          //子节点
+    pub data: Option<MetaData>,                         //数据
+    pub extra_data: Option<HashMap<String, ExtraData>>, //额外数据
 }
 impl MetaNode {
     pub fn get_dir_childs(&self) -> Vec<MetaNode> {

@@ -47,21 +47,16 @@ impl App {
             for parser in composer.parsers {
                 meta_list.push(parse(&parser, &cfg.basic.root)?);
             }
-            let mut process_list = Vec::new();
             for processer in composer.processers {
-                for meta in &meta_list {
-                    process_list.push(process(&processer, meta.clone())?);
+                for meta in meta_list.iter_mut() {
+                    process(&processer, meta)?;
                 }
             }
             let mut generate_list = Vec::new();
             for generator in composer.generators {
-                for process in &process_list {
-                    let mut gen_list = generate(
-                        &generator,
-                        &cfg.basic.root,
-                        &cfg.basic.package,
-                        process.clone(),
-                    )?;
+                for meta in meta_list.iter() {
+                    let mut gen_list =
+                        generate(&generator, &cfg.basic.root, &cfg.basic.package, meta)?;
                     generate_list.append(&mut gen_list);
                 }
             }

@@ -26,6 +26,7 @@ impl IParser for GMParser {
                     is_dir: metadata.is_dir(),
                     childs: Vec::new(),
                     data: None,
+                    extra_data: None,
                 };
                 if metadata.is_file() {
                     let ext = pwd.extension();

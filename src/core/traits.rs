@@ -10,12 +10,12 @@ pub trait IParser: fmt::Display {
 
 pub trait IProcesser: fmt::Display {
     fn process_type(&self) -> ProcessType;
-    fn process(&self, data: MetaNode) -> Result<ProcessData>;
+    fn process(&self, meta: &mut MetaNode) -> Result<()>;
 }
 
 pub trait IGenerator: fmt::Display {
     fn generate_type(&self) -> GenerateType;
-    fn generate(&self, root: &str, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>>;
+    fn generate(&self, root: &str, pkg: &str, meta: &MetaNode) -> Result<Vec<GenerateData>>;
 }
 
 pub trait IOutputer: fmt::Display {

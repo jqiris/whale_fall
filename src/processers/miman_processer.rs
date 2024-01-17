@@ -2,7 +2,7 @@ use core::fmt;
 use std::collections::HashMap;
 
 use crate::core::{
-    meta::{MetaNode, ProcessData, ProcessType},
+    meta::{ExtraData, MetaNode, ProcessType},
     traits::IProcesser,
 };
 use anyhow::Result;
@@ -10,24 +10,15 @@ use anyhow::Result;
 pub struct MimanProcesser {}
 
 impl IProcesser for MimanProcesser {
-    fn process(&self, meta: MetaNode) -> Result<ProcessData> {
-        let mut result = ProcessData {
-            lists: HashMap::new(),
-            maps: HashMap::new(),
-        };
-        let business = meta.find_by_name("business");
-        let micro = meta.find_by_name("micro");
-        if let Some(data) = business {
-            result.maps.insert("business".to_string(), data);
-        }
-        if let Some(data) = micro {
-            result.maps.insert("micro".to_string(), data);
-        }
-
+    fn process(&self, meta: &mut MetaNode) -> Result<()> {
+        let mut extra_data = HashMap::new();
         let excludes = vec!["cmd", "config", "entity", "jobs", "scripts"];
         let gi_list = meta.find_gi_list(&excludes);
-        result.lists.insert("gi".to_string(), gi_list);
-        Ok(result)
+        if gi_list.len() > 0 {
+            extra_data.insert("gi".to_string(), ExtraData::MetaList(gi_list));
+        }
+        meta.extra_data = Some(extra_data);
+        Ok(())
     }
 
     fn process_type(&self) -> ProcessType {

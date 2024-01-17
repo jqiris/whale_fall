@@ -34,11 +34,11 @@ impl IGenerator for MimanGenerator {
         GenerateType::GenerateTypeMiman
     }
 
-    fn generate(&self, root: &str, pkg: &str, data: ProcessData) -> Result<Vec<GenerateData>> {
+    fn generate(&self, root: &str, pkg: &str, meta: &MetaNode) -> Result<Vec<GenerateData>> {
         let mut list = Vec::new();
         let mut micro_apps = Vec::new();
         //micro
-        if let Some(micro) = data.maps.get("micro") {
+        if let Some(micro) = meta.find_by_name("micro") {
             //entity list
             let entity_list = micro.find_list_by_name("entity");
             for entity in entity_list {
@@ -79,7 +79,7 @@ impl IGenerator for MimanGenerator {
             }
         }
         //business
-        if let Some(buiness) = data.maps.get("business") {
+        if let Some(buiness) = meta.find_by_name("business") {
             //entity list
             let entity_list = buiness.find_list_by_name("entity");
             for entity in entity_list {
@@ -115,9 +115,15 @@ impl IGenerator for MimanGenerator {
             }
         }
         //gi
-        if let Some(gi_list) = data.lists.get("gi") {
-            for gi in gi_list {
-                list.push(self.gen_gi(&gi)?);
+        if let Some(extra_data) = &meta.extra_data {
+            if let Some(gi) = extra_data.get("gi") {
+                match gi {
+                    ExtraData::MetaList(gi_list) => {
+                        for gi in gi_list {
+                            list.push(self.gen_gi(&gi)?);
+                        }
+                    }
+                }
             }
         }
         Ok(list)
