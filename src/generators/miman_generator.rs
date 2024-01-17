@@ -590,7 +590,7 @@ impl MimanGenerator {
                                 xst_maps.get_mut(&xst.file).unwrap().push(xst);
                             }
                             let mut exist_maps = HashMap::new();
-                            if let Some(types) = micro_app.find_by_name(&micro_package) {
+                            if let Some(types) = module.find_by_name(&micro_package) {
                                 exist_maps = types.go_struct_maps();
                             }
                             let mut files: Vec<&String> = xst_maps.keys().collect();
