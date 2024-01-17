@@ -154,11 +154,6 @@ pub enum ProcessType {
     ProcessTypeMiman,
 }
 
-#[derive(Default, Clone)]
-pub struct ProcessData {
-    pub lists: HashMap<String, Vec<MetaNode>>,
-    pub maps: HashMap<String, MetaNode>,
-}
 #[derive(Debug, Clone)]
 pub enum GenerateType {
     GenerateTypeMiman,
