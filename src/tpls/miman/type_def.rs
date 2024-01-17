@@ -66,7 +66,7 @@ func (list {{entity_list_name}}) String() string {
 }
 {{#each fields}}{{#if gen_slice_func}}func (list {{../entity_list_name}}) Get{{field}}List() []{{type_}} {
 	return list.Get{{type_in_name}}List(func (item *{{../entity_name}}) {{type_}} {
-		return {{field_access this "item"}}
+		return item.{{field}}
 	})
 }{{/if}}
 {{/each}}
@@ -88,7 +88,7 @@ func (list {{entity_list_name}}) String() string {
     
 	return list.FilterBy(func (item *{{../entity_name}}) bool {
 		for _, v := range needle {
-			if {{field_access this "item"}} == v {
+			if item.{{field}} == v {
                 return true
             }
         }
@@ -98,14 +98,14 @@ func (list {{entity_list_name}}) String() string {
 {{/each}}
 {{#each fields}}{{#if gen_slice_func}}func (list {{../entity_list_name}}) GroupBy{{field}}() map[{{type_}}]{{../entity_list_name}} {
 	return list.GroupBy{{type_in_name}}(func (item *{{../entity_name}}) {{type_}} {
-		return {{field_access this "item"}}
+		return item.{{field}}
     })
 }{{/if}}
 {{/each}}
 {{#each fields}}{{#if gen_slice_func}}func (list {{../entity_list_name}}) Get{{field}}Map() map[{{type_}}]*{{../entity_name}} {
 	result := make(map[{{type_}}]*{{../entity_name}})
 	for _, item := range list {
-		result[{{field_access this "item"}}] = item
+		result[item.{{field}}] = item
 	}
 	return result
 }{{/if}}

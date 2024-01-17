@@ -600,9 +600,7 @@ impl MimanGenerator {
                                     let mut bufd = header_micro.execute()?;
                                     let fname = path_name(&Path::new(&file));
                                     for xst in xst_list {
-                                        let xst_default = &mut XST::default();
-                                        let old_xst =
-                                            exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
+                                        let old_xst = exist_maps.get_mut(&xst.name);
                                         let name_mark =
                                             format!("Micro{}", to_upper_first(&micro_app.name));
                                         let (_b, _bc) =
@@ -678,8 +676,7 @@ impl MimanGenerator {
                     let mut bufd = header_types.execute()?;
                     let fname = path_name(&Path::new(&file));
                     for xst in xst_list {
-                        let xst_default = &mut XST::default();
-                        let old_xst = exist_maps.get_mut(&xst.name).unwrap_or(xst_default);
+                        let old_xst = exist_maps.get_mut(&xst.name);
                         let (_b, _bc) = self._types(&xst, old_xst, "json", "")?;
                         bufd += &_b;
                         bufc += &_bc;
@@ -706,7 +703,7 @@ impl MimanGenerator {
     fn _types(
         &self,
         xst: &XST,
-        old_xst: &mut XST,
+        old_xst: Option<&mut XST>,
         tag_name: &str,
         name_mark: &str,
     ) -> Result<(String, String)> {
@@ -764,22 +761,23 @@ impl MimanGenerator {
                 }
                 _ => {}
             }
-
-            if let Some(old_field) = old_xst.fields.get(&field.name) {
-                let tag_json2 = old_field.get_tag("json");
-                if let Some(tag_json2) = tag_json2 {
-                    if tag_json2.name == "-" {
-                        gio.fields.push(types::IoField {
-                            name: field.name.clone(),
-                            type_: ftype.clone(),
-                            type2: type2.clone(),
-                            type2_entity,
-                            stype: field.stype.clone() as i32,
-                            tag: "`json:\"-\"`".to_string(),
-                            comment: strip_breaks(&field.comment),
-                            hidden: false,
-                        });
-                        continue;
+            if let Some(ref oxst) = old_xst {
+                if let Some(old_field) = oxst.fields.get(&field.name) {
+                    let tag_json2 = old_field.get_tag("json");
+                    if let Some(tag_json2) = tag_json2 {
+                        if tag_json2.name == "-" {
+                            gio.fields.push(types::IoField {
+                                name: field.name.clone(),
+                                type_: ftype.clone(),
+                                type2: type2.clone(),
+                                type2_entity,
+                                stype: field.stype.clone() as i32,
+                                tag: "`json:\"-\"`".to_string(),
+                                comment: strip_breaks(&field.comment),
+                                hidden: false,
+                            });
+                            continue;
+                        }
                     }
                 }
             }
@@ -801,67 +799,68 @@ impl MimanGenerator {
         }
 
         let conv_buf = self._io_conv(&mut gio, name_mark)?;
-        // 自定义字段
-        for (_, field) in old_xst.fields.iter() {
-            if !xst.fields.contains_key(&field.name) {
-                let mut stype = field.stype.clone();
-                let tag_json = field.get_tag("json");
-                let tag_io = field.get_tag(tag_name);
-                let mut tags = String::new();
+        if let Some(oxst) = old_xst {
+            // 自定义字段
+            for (_, field) in oxst.fields.iter() {
+                if !xst.fields.contains_key(&field.name) {
+                    let mut stype = field.stype.clone();
+                    let tag_json = field.get_tag("json");
+                    let tag_io = field.get_tag(tag_name);
+                    let mut tags = String::new();
 
-                if tag_json.is_none() {
-                    continue;
-                }
-                if let Some(tag_json) = &tag_json {
-                    tags = format!("`json:\"{}\"`", tag_json.name);
-                    if tag_json.name == "-" {
-                        tags = String::new();
-                    }
-                }
-                if let Some(tag_io) = tag_io {
-                    if tag_io.txt == "-" {
+                    if tag_json.is_none() {
                         continue;
                     }
-                    if !tag_io.txt.is_empty() {
-                        tag_json.unwrap().name = tag_io.name.clone();
-                    }
-                }
-
-                let mut type2 = String::new();
-                let mut type2_entity = false;
-
-                let mut ftype = field.xtype.clone();
-                match field.stype {
-                    XType::XTypeStruct => {
-                        type2 = field.xtype.replace("*", "");
-                        if field.xtype.contains("time.Time") {
-                            stype = XType::XTypeTime;
-                            ftype = "string".to_string();
+                    if let Some(tag_json) = &tag_json {
+                        tags = format!("`json:\"{}\"`", tag_json.name);
+                        if tag_json.name == "-" {
+                            tags = String::new();
                         }
                     }
-                    XType::XTypeSlice => {
-                        type2 = field.xtype.replace("[]", "");
-                        type2 = type2.replace("*", "");
-                        if is_first_uppercase(&type2) {
-                            type2_entity = true;
+                    if let Some(tag_io) = tag_io {
+                        if tag_io.txt == "-" {
+                            continue;
+                        }
+                        if !tag_io.txt.is_empty() {
+                            tag_json.unwrap().name = tag_io.name.clone();
                         }
                     }
-                    _ => {}
-                }
 
-                gio.fields.push(types::IoField {
-                    name: field.name.clone(),
-                    type_: ftype,
-                    type2,
-                    type2_entity,
-                    stype: stype as i32,
-                    tag: tags,
-                    comment: strip_breaks(&field.comment),
-                    hidden: false,
-                });
+                    let mut type2 = String::new();
+                    let mut type2_entity = false;
+
+                    let mut ftype = field.xtype.clone();
+                    match field.stype {
+                        XType::XTypeStruct => {
+                            type2 = field.xtype.replace("*", "");
+                            if field.xtype.contains("time.Time") {
+                                stype = XType::XTypeTime;
+                                ftype = "string".to_string();
+                            }
+                        }
+                        XType::XTypeSlice => {
+                            type2 = field.xtype.replace("[]", "");
+                            type2 = type2.replace("*", "");
+                            if is_first_uppercase(&type2) {
+                                type2_entity = true;
+                            }
+                        }
+                        _ => {}
+                    }
+
+                    gio.fields.push(types::IoField {
+                        name: field.name.clone(),
+                        type_: ftype,
+                        type2,
+                        type2_entity,
+                        stype: stype as i32,
+                        tag: tags,
+                        comment: strip_breaks(&field.comment),
+                        hidden: false,
+                    });
+                }
             }
         }
-
         let buf = gio.execute()?;
         Ok((buf, conv_buf))
     }

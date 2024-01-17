@@ -64,8 +64,7 @@ func From{{name}}Entity(input *entity.{{name}}) *do.{{name}}Do{
 	b, _ := tools.JSON.Marshal(input.{{name}})
 	output.{{name}} = string(b)
 		{{/if}}
-	{{/if}}
-	{{#if (eq stype 2)}}
+	{{else if (eq stype 2)}}
 	if input.{{name}} != nil {
 		{{#if conv_slice}}
 			output.{{name}} = slice_utils.Implode(input.{{name}},",")
@@ -74,19 +73,16 @@ func From{{name}}Entity(input *entity.{{name}}) *do.{{name}}Do{
 		output.{{name}} = string(b)
 		{{/if}}
 	}
-    {{/if}}
-	{{#if (eq stype 3)}}
+	{{else if (eq stype 3)}}
 	if input.{{name}} != nil {
 		b, _ := tools.JSON.Marshal(input.{{name}})
 		output.{{name}} = string(b)
 	}
-    {{/if}}
-	{{#if (eq stype 4)}}
+	{{else if (eq stype 4)}}
 		if !input.{{name}}.IsZero() {
 			output.{{name}} = &input.{{name}}
 		}
-    {{/if}}
-	{{#if (and (eq stype -1) (eq stype 0))}}
+	{{else}}
 	output.{{name}} = input.{{name}}
 	{{/if}}
 {{/each}}
@@ -113,17 +109,14 @@ func To{{name}}Entity(input *do.{{name}}Do) *entity.{{name}}{
 			output.{{name}} = t
 		}
 	}
-    {{/if}}
-	{{#if (eq stype 2)}}
+	{{else if (eq stype 2)}}
 		if input.{{name}} != "" {
 			{{#if conv_slice}}
 				{{#if (eq type2 "int64") }}
 					output.{{name}} = slice_utils.ExplodeInt64(input.{{name}},",")
-                {{/if}}
-				{{#if (eq type2 "int") }}
+				{{else if (eq type2 "int") }}
 					output.{{name}} = slice_utils.ExplodeInt(input.{{name}},",")
-                {{/if}}
-				{{#if (and (ne type2 "int64") (ne type2 "int")) }}
+				{{else}}
 					output.{{name}} = slice_utils.ExplodeStr(input.{{name}},",")
 				{{/if}}
 			{{else}}
@@ -136,8 +129,7 @@ func To{{name}}Entity(input *do.{{name}}Do) *entity.{{name}}{
 				}
 			{{/if}}
 		}
-    {{/if}}
-	{{#if (eq stype 3)}}
+	{{else if (eq stype 3)}}
 		if input.{{name}} != "" {
 			t := {{type_}}{}
 			err := tools.JSON.Unmarshal([]byte(input.{{name}}), &t)
@@ -147,13 +139,11 @@ func To{{name}}Entity(input *do.{{name}}Do) *entity.{{name}}{
 				output.{{name}} = t
 			}
 		}
-    {{/if}}
-	{{#if (eq stype 4)}}
+	{{else if (eq stype 4)}}
 		if input.{{name}} != nil {
 			output.{{name}} = *input.{{name}}
 		}
-    {{/if}}
-	{{#if (eq stype 0)}}
+	{{else}}
 	output.{{name}} = input.{{name}}
 	{{/if}}
 {{/each}}

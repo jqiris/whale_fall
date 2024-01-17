@@ -42,8 +42,7 @@ func From{{name_mark}}{{name}}Entity(input *entity.{{name}}) *types.{{name}}{
 {{#each fields }}
 	{{#if (eq stype 1)}}
 	output.{{name}} = From{{../name_mark}}{{type2}}Entity(input.{{name}})
-    {{/if}}
-	{{#if (eq stype 2)}}
+	{{else if (eq stype 2)}}
 	if input.{{name}} != nil {
 		{{#if type2_entity}}
 		output.{{name}} = From{{../name_mark}}{{type2}}List(input.{{name}})
@@ -51,13 +50,11 @@ func From{{name_mark}}{{name}}Entity(input *entity.{{name}}) *types.{{name}}{
 		output.{{name}} = input.{{name}}
 		{{/if}}
 	}
-    {{/if}}
-	{{#if (eq stype 4)}}
+	{{else if (eq stype 4)}}
 		if !input.{{name}}.IsZero() {
 			output.{{name}} = tool_time.TimeToDateTimeString(input.{{name}})
 		}
-    {{/if}}
-	{{#if (or (eq stype 0) (eq stype 3))}}
+	{{else}}
 	output.{{name}} = input.{{name}}
 	{{/if}}
 {{/each}}
@@ -72,20 +69,17 @@ func To{{name_mark}}{{name}}Entity(input *types.{{name}}) *entity.{{name}}{
 {{#each fields }}
 	{{#if (eq stype 1)}} 
 	output.{{name}} = To{{../name_mark}}{{type2}}Entity(input.{{name}})
-    {{/if}}
-	{{#if (eq stype 2)}}
+	{{else if (eq stype 2)}}
 		{{#if type2_entity}}
 		output.{{name}} = To{{../name_mark}}{{type2}}List(input.{{name}})
 		{{else}}
 		output.{{name}} = input.{{name}}
 		{{/if}}
-    {{/if}}
-	{{#if (eq stype 4)}}
+	{{else if (eq stype 4)}}
 		if ts := tool_time.ParseDateTime(input.{{name}}); !ts.IsZero() {
 			output.{{name}} = ts
 		}
-    {{/if}}
-	{{#if (or (eq stype 0) (eq stype 3))}}
+	{{else}}
 	output.{{name}} = input.{{name}}
 	{{/if}}
 {{/each}}
