@@ -8,11 +8,9 @@ type {{name}}Do struct {
     {{#each fields}}
         {{#if (eq stype 4)}}
         {{name}} *{{type_}} {{{tag}}} // {{{comment}}}
-        {{/if}}
-        {{#if (and (gt stype 0) (lt stype 4))}}
+        {{else if (gt stype 0)}}
         {{name}} string {{{tag}}} // {{{comment}}}
-        {{/if}}
-        {{#if (or (le stype 0) (gt stype 4))}}
+        {{else}}
         {{name}} {{type_}} {{{tag}}} // {{{comment}}}
         {{/if}}
     {{/each}}

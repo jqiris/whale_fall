@@ -593,10 +593,12 @@ impl MimanGenerator {
                             if let Some(types) = module.find_by_name(&micro_package) {
                                 exist_maps = types.go_struct_maps();
                             }
-                            let mut files: Vec<&String> = xst_maps.keys().collect();
+                            let mut files: Vec<String> =
+                                xst_maps.keys().map(|x| x.clone()).collect();
                             files.sort();
-                            for file in files {
-                                if let Some(xst_list) = xst_maps.get(file) {
+                            for file in &files {
+                                if let Some(xst_list) = xst_maps.get_mut(file) {
+                                    xst_list.sort_by(|a, b| a.name.cmp(&b.name));
                                     let mut bufd = header_micro.execute()?;
                                     let fname = path_name(&Path::new(&file));
                                     for xst in xst_list {
@@ -669,10 +671,11 @@ impl MimanGenerator {
                 allow_edit: true,
             };
             let mut bufc = header_conv.execute()?;
-            let mut files: Vec<&String> = xst_maps.keys().collect();
+            let mut files: Vec<String> = xst_maps.keys().map(|x| x.clone()).collect();
             files.sort();
-            for file in files {
-                if let Some(xst_list) = xst_maps.get(file) {
+            for file in &files {
+                if let Some(xst_list) = xst_maps.get_mut(file) {
+                    xst_list.sort_by(|a, b| a.name.cmp(&b.name));
                     let mut bufd = header_types.execute()?;
                     let fname = path_name(&Path::new(&file));
                     for xst in xst_list {
@@ -1377,7 +1380,7 @@ impl MimanGenerator {
         let mut field_list: Vec<XField> = xst.fields.values().cloned().collect();
         field_list.sort_by(|a, b| a.idx.cmp(&b.idx));
         for field in field_list {
-            let tag_desc = field.get_tag("json");
+            let tag_desc = field.get_tag("db");
             if let Some(desc) = tag_desc {
                 if desc.txt == "-" {
                     continue;
