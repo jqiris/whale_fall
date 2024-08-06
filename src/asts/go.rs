@@ -2,12 +2,13 @@ use std::{borrow::Borrow, collections::HashMap, rc::Rc};
 
 use gosyn::ast::{self, *};
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
 use crate::common::{
     file::path_str,
     str::{find_string_sub_match, is_first_lowwercase, is_first_uppercase},
 };
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub enum XType {
     XTypeNone = -1,
     XTypeBasic = 0,
@@ -53,7 +54,7 @@ pub struct TagItem {
     pub txt: String,
     pub opts: HashMap<String, String>,
 }
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct XField {
     pub name: String,
     pub xtype: String,
@@ -75,7 +76,7 @@ impl XField {
                     opts: HashMap::new(),
                 });
             }
-            let mut it = TagItem {
+            let mut it: TagItem = TagItem {
                 name: txt.clone(),
                 txt: txt.clone(),
                 opts: HashMap::new(),
@@ -105,6 +106,7 @@ impl XField {
 }
 #[derive(Debug, Default, Clone)]
 pub struct XST {
+    pub docs: Vec<Rc<Comment>>,
     pub gi_name: String,
     pub gi: bool,
     pub impl_inf: String,
@@ -555,7 +557,9 @@ impl From<ast::File> for MetaGo {
                     for spec in x.specs {
                         let (mut used, mut impl_inf, mut gi_name, mut gi) =
                             (true, "".to_string(), "".to_string(), false);
+                        let mut docs = Vec::new();
                         if spec.docs.len() > 0 {
+                            docs = spec.docs.clone();
                             for comment in spec.docs {
                                 if comment.text.contains("@IGNORE") {
                                     used = false;
@@ -580,6 +584,7 @@ impl From<ast::File> for MetaGo {
                             ast::Expression::TypeStruct(xt) => {
                                 let (fields, child) = go_struct_field(&xt);
                                 let xst = XST {
+                                    docs,
                                     gi_name: gi_name.to_string(),
                                     gi,
                                     impl_inf: impl_inf.to_string(),

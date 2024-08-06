@@ -7,6 +7,8 @@ use lazy_static::lazy_static;
 use std::{collections::HashMap, path::Path, sync::Mutex};
 use traits::*;
 
+use crate::Basic;
+
 use self::meta::*;
 
 lazy_static! {
@@ -59,9 +61,9 @@ pub fn process(name: &str, data: &mut MetaNode) -> Result<()> {
     }
 }
 
-pub fn generate(name: &str, root: &str, pkg: &str, data: &MetaNode) -> Result<Vec<GenerateData>> {
+pub fn generate(name: &str, basic: &Basic, data: &MetaNode) -> Result<Vec<GenerateData>> {
     match GENERATOR.lock().unwrap().get(name) {
-        Some(generator) => generator.generate(root, pkg, data),
+        Some(generator) => generator.generate(basic, data),
         None => Err(anyhow::anyhow!("generator {} not found", name)),
     }
 }

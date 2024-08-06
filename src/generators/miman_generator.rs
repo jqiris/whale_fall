@@ -18,6 +18,7 @@ use crate::{
         dao_def, do_def, docs, gi_def, handler, header, http_routes, http_types, micro_entry,
         micro_provider, micro_service, micro_types, repo_def, type_def, types,
     },
+    Basic,
 };
 use anyhow::{Ok, Result};
 use regex::Regex;
@@ -34,7 +35,10 @@ impl IGenerator for MimanGenerator {
         GenerateType::GenerateTypeMiman
     }
 
-    fn generate(&self, root: &str, pkg: &str, meta: &MetaNode) -> Result<Vec<GenerateData>> {
+    fn generate(&self, basic: &Basic, meta: &MetaNode) -> Result<Vec<GenerateData>> {
+        let root = &basic.root;
+        let pkg = &basic.package;
+
         let mut list = Vec::new();
         let mut micro_apps = Vec::new();
         //micro

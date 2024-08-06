@@ -1,4 +1,4 @@
-use crate::asts::go::{MetaGo, XMethod, XST};
+use crate::asts::go::{MetaGo, XMethod, INF, XST};
 use crate::common::str::in_slice;
 use std::collections::HashMap;
 
@@ -49,6 +49,28 @@ impl MetaNode {
                     if func.name == name {
                         return Some(func.clone());
                     }
+                }
+            }
+            for child in &self.childs {
+                if let Some(func) = child.find_go_func(name) {
+                    return Some(func);
+                }
+            }
+        }
+        None
+    }
+    pub fn find_go_inf(&self, name: &str) -> Option<INF> {
+        if let Some(data) = &self.data {
+            if let MetaData::Go(go) = data {
+                for (_, inf) in go.inf_list.iter() {
+                    if inf.name == name {
+                        return Some(inf.clone());
+                    }
+                }
+            }
+            for child in &self.childs {
+                if let Some(inf) = child.find_go_inf(name) {
+                    return Some(inf);
                 }
             }
         }
@@ -157,6 +179,7 @@ pub enum ProcessType {
 #[derive(Debug, Clone)]
 pub enum GenerateType {
     GenerateTypeMiman,
+    GenerateTypeSgz,
 }
 impl Default for GenerateType {
     fn default() -> Self {

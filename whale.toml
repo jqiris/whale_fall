@@ -1,9 +1,10 @@
 [basic]
-package = "examples"
-root = "D:\\workspace\\studys\\gen\\examples"
+package = "golershop.cn"
+root = "D:\\workspace\\game-mall"
+file = "invite_code.go"
 
 [[composer]]
 parsers = ["gm"]
-processers = ["miman"]
-generators = ["miman"]
+processers = []
+generators = ["sgz"]
 outputers = ["go", "md"]

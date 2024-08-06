@@ -10,6 +10,7 @@ use crate::core::{generate, output, parse, process};
 pub struct Basic {
     pub package: String, //包名
     pub root: String,    //根目录
+    pub file: String,    //文件名
 }
 #[derive(Debug, Deserialize)]
 pub struct Composer {
@@ -55,8 +56,7 @@ impl App {
             let mut generate_list = Vec::new();
             for generator in composer.generators {
                 for meta in meta_list.iter() {
-                    let mut gen_list =
-                        generate(&generator, &cfg.basic.root, &cfg.basic.package, meta)?;
+                    let mut gen_list = generate(&generator, &cfg.basic, meta)?;
                     generate_list.append(&mut gen_list);
                 }
             }

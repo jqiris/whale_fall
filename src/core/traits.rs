@@ -1,3 +1,5 @@
+use crate::Basic;
+
 use super::meta::*;
 use anyhow::Result;
 use core::fmt;
@@ -15,7 +17,7 @@ pub trait IProcesser: fmt::Display {
 
 pub trait IGenerator: fmt::Display {
     fn generate_type(&self) -> GenerateType;
-    fn generate(&self, root: &str, pkg: &str, meta: &MetaNode) -> Result<Vec<GenerateData>>;
+    fn generate(&self, basic: &Basic, meta: &MetaNode) -> Result<Vec<GenerateData>>;
 }
 
 pub trait IOutputer: fmt::Display {
