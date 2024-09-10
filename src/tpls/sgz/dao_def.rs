@@ -257,7 +257,7 @@ func (dao *{{entity_name}}Dao) Edit(ctx context.Context, id any, in *do.{{entity
 	}
 
 	//FieldsEx(dao.Columns().Id)
-	return dao.Ctx(ctx).Data(data).OmitNil().WherePri(id).UpdateAndGetAffected()
+	return dao.Ctx(ctx).Data(data).OmitNil().WhereIn(dao.columns.PrimaryKey, id).UpdateAndGetAffected()
 }
 
 // EditWhere 根据Where条件编辑
