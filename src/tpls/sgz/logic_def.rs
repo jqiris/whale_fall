@@ -82,6 +82,16 @@ func (s *s{{entity_name}}) Remove(ctx context.Context, id any) (affected int64, 
 
 	return affected, err
 }
+
+// Save 保存
+func (s *s{{entity_name}}) Save(ctx context.Context, in *do.{{entity_name}}) (affected int64, err error) {
+	return dao.{{entity_name}}.Save(ctx, in)
+}
+
+// Count 计数
+func (s *s{{entity_name}}) Count(ctx context.Context, in *do.{{entity_name}}ListInput) (count int, err error) {
+	return dao.{{entity_name}}.Count(ctx, in)
+}
 "#;
 
 #[derive(Serialize, Deserialize, Default)]

@@ -26,6 +26,10 @@ type (
 		Edit(ctx context.Context, in *do.{{entity_name}}) (affected int64, err error)
 		// Remove 删除多条记录模式
 		Remove(ctx context.Context, id any) (affected int64, err error)
+		// Save 保存
+		Save(ctx context.Context, in *do.{{entity_name}}) (affected int64, err error)
+		// Count 计数
+		Count(ctx context.Context, in *do.{{entity_name}}ListInput) (count int, err error)
 	}
 )
 
