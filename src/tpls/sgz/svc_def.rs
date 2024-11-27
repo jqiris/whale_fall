@@ -14,6 +14,10 @@ import (
 
 type (
 	I{{entity_name}} interface {
+		// Get 读取信息
+		Get(ctx context.Context, id any) (out *entity.{{entity_name}}, err error)
+		// Gets 读取多条信息
+		Gets(ctx context.Context, id any) (list []*entity.{{entity_name}}, err error)
 		// Find 查询数据
 		Find(ctx context.Context, in *do.{{entity_name}}ListInput) (out []*entity.{{entity_name}}, err error)
 		// FindOne 查询活动数据

@@ -1,7 +1,7 @@
 [basic]
 package = "golershop.cn"
 root = "D:\\workspace\\game-mall"
-file = "invite_code.go"
+file = "config_system.go"
 
 [[composer]]
 parsers = ["gm"]
