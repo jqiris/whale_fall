@@ -1,7 +1,7 @@
 [basic]
 package = "golershop.cn"
 root = "D:\\workspace\\game-mall"
-file = "config_system.go"
+file = "account_user_analytics.go"
 
 [[composer]]
 parsers = ["gm"]

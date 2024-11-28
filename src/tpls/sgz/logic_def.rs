@@ -24,6 +24,33 @@ func New{{entity_name}}() *s{{entity_name}} {
 	return &s{{entity_name}}{}
 }
 
+// Get 读取信息
+func (s *s{{entity_name}}) Get(ctx context.Context, id any) (out *entity.{{entity_name}}, err error) {
+	var list []*entity.{{entity_name}}
+	list, err = s.Gets(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(list) > 0 {
+		return list[0], nil
+	}
+
+	return out, nil
+}
+
+// Gets 读取多条信息
+func (s *s{{entity_name}}) Gets(ctx context.Context, id any) (list []*entity.{{entity_name}}, err error) {
+	err = dao.{{entity_name}}.Ctx(ctx).WherePri(id).Scan(&list)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
 // Find 查询数据
 func (s *s{{entity_name}}) Find(ctx context.Context, in *do.{{entity_name}}ListInput) (out []*entity.{{entity_name}}, err error) {
 	out, err = dao.{{entity_name}}.Find(ctx, in)
